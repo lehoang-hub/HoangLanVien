@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import SEO from '../../components/SEO';
 
@@ -9,6 +10,10 @@ export default function Bungalows() {
   const [bungalows, setBungalows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const navigate = useNavigate();
+  const handleViewDetail = (id) => {
+    navigate(`/bungalows/${id}`); // Chuyển hướng sang trang chi tiết kèm ID
+  };
   const itemsPerPage = 3;
 
   // ==========================================
@@ -87,11 +92,17 @@ export default function Bungalows() {
               <div key={room.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col">
                 <div className="relative h-56 overflow-hidden bg-gray-200">
                   {/* Dùng ảnh mặc định nếu API chưa có link ảnh */}
-                  <img 
-                    src={room.image || "https://images.unsplash.com/photo-1587061949409-02df41d5e562?q=80&w=2000&auto=format&fit=crop"} 
-                    alt={room.name} 
-                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" 
-                  />
+                  {room.image ? (
+                    <img 
+                        src={`http://localhost:8000/${room.image}`} 
+                        alt={room.name} 
+                        className="w-full h-48 object-cover rounded-t-lg" 
+                    />
+                ) : (
+                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400 italic">
+                        Chưa có ảnh
+                     </div>
+            )}
                   <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-green-700 shadow">
                     👥 {room.capacity || '2 Người lớn'}
                   </div>
@@ -112,9 +123,12 @@ export default function Bungalows() {
                 </div>
 
                   <div className="flex flex-col gap-3 mt-auto">
-                    <button className="w-full bg-white border-2 border-green-600 text-green-700 hover:bg-green-50 font-bold py-2.5 rounded-lg transition">
-                      🔍 Xem chi tiết
-                    </button>
+                    <button 
+              onClick={() => handleViewDetail(room.id)}
+              className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+            >
+              🔍 Xem chi tiết
+            </button>
                     <button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg transition shadow-md">
                       📅 Đặt phòng ngay
                     </button>
@@ -169,11 +183,11 @@ export default function Bungalows() {
             </p>
             <div className="space-y-4">
               <p className="flex items-center text-gray-800 font-medium text-lg">
-                <span className="w-10 text-2xl">📍</span> Vùng núi thanh bình, Việt Nam
+                <span className="w-10 text-2xl">📍</span> Xã Bà Nà, Thành Phố Đà Nẵng, Việt Nam
               </p>
               <p className="flex items-center text-gray-800 font-medium text-lg">
                 <span className="w-10 text-2xl">📞</span> Hotline/Zalo: 
-                <a href="tel:0909123456" className="text-blue-600 ml-2 hover:underline">0909 123 456</a>
+                <a href="tel:0943052657" className="text-blue-600 ml-2 hover:underline">0943 052 657</a>
               </p>
               <p className="flex items-center text-gray-800 font-medium text-lg">
                 <span className="w-10 text-2xl">✉️</span> Email: 

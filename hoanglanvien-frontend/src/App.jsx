@@ -17,6 +17,7 @@ import Home from './pages/client/Home';
 import BungalowsClient from './pages/client/Bungalows';
 import RestaurantClient from './pages/client/Restaurant';
 import Thuvien from './pages/client/Thuvien'; // Trang Thư viện khách xem[cite: 10]
+import BungalowDetail from './pages/client/BungalowDetail';
 
 function App() {
   return (
@@ -45,6 +46,8 @@ function App() {
           <Route index element={<Home />} />
           <Route path="bungalows" element={<BungalowsClient />} />
           <Route path="restaurant" element={<RestaurantClient />} />
+          {/* Route trang chi tiết Bungalow */}
+        <Route path="/bungalows/:id" element={<BungalowDetail />} />
           
           {/* ĐÃ ĐƯA ROUTE THƯ VIỆN VÀO ĐÚNG CẤU TRÚC CLIENT */}
           <Route path="thuvien" element={<Thuvien />} />
