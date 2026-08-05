@@ -64,7 +64,7 @@ export default function Bungalows() {
     <div className="bg-gray-50 min-h-screen pb-16">
       <SEO 
         title="Danh sách Bungalow" 
-        description="Khám phá các hạng phòng tuyệt đẹp tại Hoàng Lan Viên FarmStay với mức giá ưu đãi nhất."
+        description="Khám phá các hạng phòng tuyệt đẹp tại Hoàng Lan FarmStay với mức giá ưu đãi nhất."
         url="https://hoanglanvien.com/bungalows"
       />
 
@@ -72,7 +72,7 @@ export default function Bungalows() {
       <div className="bg-green-800 text-white py-16 text-center shadow-inner">
         <h1 className="text-4xl font-bold mb-4 drop-shadow-md">Danh sách Bungalow</h1>
         <p className="text-lg max-w-2xl mx-auto text-green-100 px-4">
-          Khám phá các hạng phòng tuyệt đẹp tại Hoàng Lan Viên FarmStay. Lựa chọn không gian hoàn hảo cho kỳ nghỉ của bạn.
+          Khám phá các hạng phòng tuyệt đẹp tại Hoàng Lan FarmStay. Lựa chọn không gian hoàn hảo cho kỳ nghỉ của bạn.
         </p>
       </div>
 
@@ -179,7 +179,7 @@ export default function Bungalows() {
           <div className="flex-1">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Bạn cần hỗ trợ đặt phòng?</h2>
             <p className="text-gray-600 mb-6 text-lg">
-              Đội ngũ của Hoàng Lan Viên luôn sẵn sàng tư vấn chi tiết và hỗ trợ bạn chọn được căn Bungalow ưng ý nhất cho kỳ nghỉ sắp tới.
+              Đội ngũ của Hoàng Lan FarmStay luôn sẵn sàng tư vấn chi tiết và hỗ trợ bạn chọn được căn Bungalow ưng ý nhất cho kỳ nghỉ sắp tới.
             </p>
             <div className="space-y-4">
               <p className="flex items-center text-gray-800 font-medium text-lg">
@@ -191,7 +191,7 @@ export default function Bungalows() {
               </p>
               <p className="flex items-center text-gray-800 font-medium text-lg">
                 <span className="w-10 text-2xl">✉️</span> Email: 
-                <a href="mailto:booking@hoanglanvien.com" className="text-blue-600 ml-2 hover:underline">booking@hoanglanvien.com</a>
+                <a href="mailto:booking@hoanglanfarmstay.com" className="text-blue-600 ml-2 hover:underline">booking@hoanglanfarmstay.com</a>
               </p>
             </div>
           </div>

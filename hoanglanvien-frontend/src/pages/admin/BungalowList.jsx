@@ -16,15 +16,16 @@ export default function BungalowList() {
     status: 'Trống',
     availableFrom: '',
     availableTo: '',
-    image: null,
-    dailyStatus: {} // Lưu trạng thái riêng cho từng ngày { '2026-08-01': 'maintenance', ... }
+    images: [], 
+    dailyStatus: {} 
   });
 
   const fetchBungalows = () => {
     fetch('http://localhost:8000/api/admin/bungalows')
       .then(res => res.json())
       .then(data => {
-        setBungalows(Array.isArray(data) ? data : []);
+        const roomList = Array.isArray(data) ? data : (data.data || data.bungalows || []);
+        setBungalows(roomList);
         setLoading(false);
       })
       .catch(err => {
@@ -38,7 +39,6 @@ export default function BungalowList() {
     fetchBungalows();
   }, []);
 
-  // Xử lý thay đổi khoảng ngày và sinh ra các mốc ngày trong khoảng (tối đa 1 tháng)
   const handleDateChange = (field, value) => {
     let updatedForm = { ...formData, [field]: value };
     
@@ -52,13 +52,12 @@ export default function BungalowList() {
         return;
       }
 
-      // Tự động khởi tạo danh sách ngày mặc định là 'available' (trống) nếu chưa có
       let newDailyStatus = { ...updatedForm.dailyStatus };
       let curr = new Date(start);
       while (curr <= end) {
         const dStr = curr.toISOString().split('T')[0];
         if (!newDailyStatus[dStr]) {
-          newDailyStatus[dStr] = 'available'; // Mặc định là trống
+          newDailyStatus[dStr] = 'available';
         }
         curr.setDate(curr.getDate() + 1);
       }
@@ -82,7 +81,7 @@ export default function BungalowList() {
       status: vnStatus, 
       availableFrom: room.available_from ? room.available_from.split('T')[0] : '',
       availableTo: room.available_to ? room.available_to.split('T')[0] : '',
-      image: null,
+      images: [],
       dailyStatus: room.daily_status ? JSON.parse(room.daily_status) : {}
     });
     setIsModalOpen(true);
@@ -93,25 +92,90 @@ export default function BungalowList() {
     setIsDetailModalOpen(true);
   };
 
-  const handleSaveRoom = (e) => {
+  // Hàm lưu dữ liệu (Xử lý nén ảnh Base64 chống lỗi 413 Content Too Large tuyệt đối)
+  const handleSaveRoom = async (e) => {
     e.preventDefault();
+
+    // 1. HÀM TỰ ĐỘNG NÉN ẢNH (Giúp giảm ảnh 5MB xuống còn ~200KB, xóa bỏ hoàn toàn lỗi 413)
+    const compressImage = (file) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            // Đặt kích thước tối đa để nén
+            const MAX_WIDTH = 1200; 
+            const MAX_HEIGHT = 1200;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Nén thành JPEG với chất lượng 70%
+            canvas.toBlob((blob) => {
+              const newFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              });
+              resolve(newFile);
+            }, 'image/jpeg', 0.7);
+          };
+        };
+      });
+    };
+
+    // 2. CHUẨN BỊ DỮ LIỆU
     const dataToSend = new FormData();
     dataToSend.append('name', formData.name);
     dataToSend.append('capacity', formData.capacity);
     dataToSend.append('max_capacity', formData.maxCapacity);
     dataToSend.append('base_price', formData.price);
     dataToSend.append('status', formData.status);
+    
     if (formData.availableFrom) dataToSend.append('available_from', formData.availableFrom);
     if (formData.availableTo) dataToSend.append('available_to', formData.availableTo);
-    dataToSend.append('daily_status', JSON.stringify(formData.dailyStatus)); // Gửi trạng thái từng ngày lên DB
-    if (formData.image) dataToSend.append('image', formData.image);
     
-    let url = `http://localhost:8000/api/admin/bungalows/${editId}`;
-    dataToSend.append('_method', 'PUT'); 
+    if (formData.dailyStatus && Object.keys(formData.dailyStatus).length > 0) {
+      dataToSend.append('daily_status', JSON.stringify(formData.dailyStatus)); 
+    }
+    
+    // 3. THỰC HIỆN NÉN VÀ ĐÍNH KÈM TẤT CẢ FILE ẢNH
+    if (formData.images && formData.images.length > 0) {
+      for (let i = 0; i < formData.images.length; i++) {
+        // Nén từng ảnh trước khi append vào FormData
+        const compressedFile = await compressImage(formData.images[i]);
+        dataToSend.append('images[]', compressedFile);
+      }
+    }
+    
+    // 4. GỬI REQUEST
+    let url = editId 
+      ? `http://localhost:8000/api/admin/bungalows/${editId}/update` 
+      : `http://localhost:8000/api/admin/bungalows`;
 
     fetch(url, {
       method: 'POST',
-      headers: { 'Accept': 'application/json' },
+      headers: { 
+        'Accept': 'application/json' 
+      },
       body: dataToSend
     })
     .then(async res => {
@@ -120,14 +184,13 @@ export default function BungalowList() {
       return data;
     })
     .then(() => {
-      alert("Cập nhật lịch trình phòng thành công!");
+      alert(editId ? "Cập nhật phòng thành công!" : "Thêm phòng mới thành công!");
       setIsModalOpen(false);
       fetchBungalows();
     })
     .catch(err => alert("Lưu thất bại: " + err.message));
   };
 
-  // Render bảng danh sách các ngày trong modal sửa để chỉnh sửa thủ công (bảo trì, v.v.)
   const renderEditDailySchedule = () => {
     if (!formData.availableFrom || !formData.availableTo) return null;
 
@@ -165,7 +228,6 @@ export default function BungalowList() {
     return <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto border p-2 rounded bg-gray-50">{elements}</div>;
   };
 
-  // Render bảng lịch chi tiết theo màu sắc ở nút "Chi tiết"
   const renderDetailCalendar = () => {
     if (!selectedRoom || !selectedRoom.available_from || !selectedRoom.available_to) {
       return <p className="text-gray-500 italic">Phòng này chưa thiết lập lịch.</p>;
@@ -203,8 +265,29 @@ export default function BungalowList() {
 
   return (
     <div>
+      {/* Tiêu đề trang và nút Thêm phòng mới */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Quản lý Bungalow</h1>
+        <button 
+          onClick={() => {
+            setEditId(null);
+            setFormData({
+              name: '',
+              capacity: '',
+              maxCapacity: '',
+              price: '',
+              status: 'Trống',
+              availableFrom: '',
+              availableTo: '',
+              images: [],
+              dailyStatus: {}
+            });
+            setIsModalOpen(true);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg shadow transition"
+        >
+          + Thêm phòng mới
+        </button>
       </div>
       
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -252,15 +335,61 @@ export default function BungalowList() {
         </table>
       </div>
 
-      {/* MODAL SỬA THÔNG TIN VÀ TÙY CHỈNH TỪNG NGÀY */}
+      {/* MODAL THÊM MỚI / SỬA THÔNG TIN & CHỌN NHIỀU ẢNH */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Sửa thông tin & Lịch trình Bungalow</h2>
+            <h2 className="text-xl font-bold mb-4">{editId ? "Sửa thông tin & Lịch trình Bungalow" : "Thêm mới Bungalow"}</h2>
             <form onSubmit={handleSaveRoom} className="space-y-4 text-left">
               <div>
                 <label className="block text-sm font-medium mb-1">Tên phòng *</label>
                 <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full border rounded px-3 py-2" required />
+              </div>
+
+              {/* Thay thế phần Sức chứa và Giá tiền cũ bằng đoạn chia 3 cột này */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Sức chứa *</label>
+                  <input 
+                    type="text" 
+                    value={formData.capacity} 
+                    onChange={(e) => setFormData({...formData, capacity: e.target.value})} 
+                    className="w-full border rounded px-3 py-2" 
+                    required 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Sức chứa tối đa *</label>
+                  <input 
+                    type="number" 
+                    value={formData.maxCapacity} 
+                    onChange={(e) => setFormData({...formData, maxCapacity: e.target.value})} 
+                    className="w-full border rounded px-3 py-2" 
+                    required 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Giá / Đêm (VNĐ) *</label>
+                  <input 
+                    type="number" 
+                    value={formData.price} 
+                    onChange={(e) => setFormData({...formData, price: e.target.value})} 
+                    className="w-full border rounded px-3 py-2" 
+                    required 
+                  />
+                </div>
+              </div>
+
+              {/* Input chọn nhiều ảnh */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Hình ảnh Bungalow (Có thể chọn nhiều ảnh)</label>
+                <input 
+                  type="file" 
+                  multiple 
+                  accept="image/*" 
+                  onChange={(e) => setFormData({...formData, images: e.target.files})} 
+                  className="w-full border rounded px-3 py-2 text-sm bg-gray-50" 
+                />
               </div>
               
               <div className="bg-gray-50 p-4 rounded-lg border">
@@ -276,7 +405,6 @@ export default function BungalowList() {
                   </div>
                 </div>
 
-                {/* Bảng tùy chỉnh trạng thái từng ngày (Bảo trì, Đang ở, Đã đặt...) */}
                 {renderEditDailySchedule()}
               </div>
 

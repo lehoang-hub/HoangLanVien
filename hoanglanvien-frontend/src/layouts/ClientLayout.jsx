@@ -10,7 +10,7 @@ export default function ClientLayout() {
             {/* Logo */}
             <div className="flex-shrink-0">
               <Link to="/" className="text-2xl font-bold text-green-700 tracking-wider">
-                Hoàng Lan Viên <span className="text-yellow-500">FarmStay</span>
+                Hoàng Lan <span className="text-yellow-500">FarmStay</span>
               </Link>
             </div>
             
@@ -45,7 +45,7 @@ export default function ClientLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Cột 1: Giới thiệu */}
           <div>
-            <h3 className="text-2xl font-bold text-white mb-4">Hoàng Lan Viên</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">Hoàng Lan FarmStay</h3>
             <p className="text-sm">Trải nghiệm không gian nghỉ dưỡng tuyệt vời hòa mình vào thiên nhiên, nơi mang lại sự bình yên và thư giãn cho gia đình bạn.</p>
           </div>
           
@@ -70,9 +70,9 @@ export default function ClientLayout() {
           {/* Cột 4: Bản đồ Google Maps (Mới) */}
           <div className="w-full h-48 md:h-full min-h-[200px] rounded-lg overflow-hidden shadow-lg border border-gray-700">
             <iframe 
-              title="Bản đồ Hoàng Lan Viên FarmStay"
+              title="Bản đồ Hoàng Lan FarmStay"
               // LƯU Ý: Chút nữa bạn sẽ thay link nhúng của bạn vào thuộc tính src bên dưới
-             src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d525.8813683907584!2d108.06974284296518!3d16.024760231015723!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1svi!2s!4v1785390887984!5m2!1svi!2s" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"
+             src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d525.8813683907584!2d108.06974284296518!3d16.024760231015723!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1svi!2s!4v1785390887984!5m2!1svi!2s" width="600" height="450" style="border:0;" allowFullScreen="" loading="lazy" referrerPolicy="strict-origin-when-cross-origin"
               width="100%" 
               height="100%" 
               style={{ border: 0 }} 
@@ -83,7 +83,7 @@ export default function ClientLayout() {
           </div>
         </div>
         <div className="text-center text-sm text-gray-500 mt-12 border-t border-gray-700 pt-6">
-          © 2026 Hoàng Lan Viên FarmStay. All rights reserved.
+          © 2026 Hoàng Lan FarmStay. All rights reserved.
         </div>
       </footer>
     </div>
