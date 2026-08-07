@@ -16,7 +16,6 @@ export default function BungalowDetail() {
     email: ''
   });
 
-  // State mới để quản lý luồng thanh toán
   const [bookingResult, setBookingResult] = useState(null);
   const [showQR, setShowQR] = useState(false);
 
@@ -36,7 +35,6 @@ export default function BungalowDetail() {
   if (loading) return <div className="p-10 text-center">Đang tải chi tiết phòng...</div>;
   if (!bungalow) return <div className="p-10 text-center text-red-500">Không tìm thấy phòng!</div>;
 
-  // Xử lý danh sách ảnh an toàn chống sập web
   let parsedImages = [];
   if (bungalow.images) {
     if (typeof bungalow.images === 'string') {
@@ -102,15 +100,12 @@ export default function BungalowDetail() {
   };
 
   const calculateBookingDetails = () => {
-    // Nếu chưa chọn ngày nào
     if (selectedDates.length === 0) return { totalDays: 0, totalPrice: 0 };
     
-    // Nếu chỉ chọn đúng 1 ngày
     if (selectedDates.length === 1) {
       return { totalDays: 1, totalPrice: Number(bungalow.base_price) };
     }
     
-    // Nếu chọn nhiều ngày (khoảng thời gian)
     const start = new Date(selectedDates[0]);
     const end = new Date(selectedDates[1]);
     const diffTime = Math.abs(end - start);
@@ -123,18 +118,24 @@ export default function BungalowDetail() {
 
   const handleBookingSubmit = (e) => {
     e.preventDefault();
+
+    // 👉 BƯỚC 1: CHẶN NGƯỜI DÙNG CHƯA ĐĂNG NHẬP
+    const token = localStorage.getItem('userToken');
+    if (!token) {
+      alert("Vui lòng đăng nhập tài khoản để tiếp tục đặt phòng!");
+      navigate('/auth', { state: { isLogin: true } });
+      return; // Dừng việc chạy code bên dưới nếu chưa đăng nhập
+    }
     
-    // ĐIỂM QUAN TRỌNG: Chỉ báo lỗi khi mảng ngày trống (chưa chọn ngày nào)
+    // BƯỚC 2: Kiểm tra lịch trống
     if (selectedDates.length === 0) {
       alert("Vui lòng click chọn ngày trên lịch!");
       return;
     }
 
-    // Xử lý linh hoạt: Chọn 1 ngày (đi về trong ngày) hoặc nhiều ngày
     const checkIn = selectedDates[0];
     const checkOut = selectedDates.length === 2 ? selectedDates[1] : selectedDates[0];
 
-    // Đóng gói dữ liệu
     const bookingData = {
       full_name: customerForm.fullname,
       phone: customerForm.phone,
@@ -142,11 +143,10 @@ export default function BungalowDetail() {
       check_in_date: checkIn,
       check_out_date: checkOut,
       total_guests: Number(bungalow.capacity) || 1,
-      bungalow_id: bungalow.id, // Đã cập nhật ID chính xác
+      bungalow_id: bungalow.id,
       notes: "Khách đặt từ trang chi tiết Bungalow"
     };
 
-    // Gửi dữ liệu lên Server
     fetch('http://localhost:8000/api/client/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -155,11 +155,10 @@ export default function BungalowDetail() {
     .then(res => res.json())
     .then(data => {
       if (data.success) {
-        // Chuyển sang màn hình QR Thanh toán
         setBookingResult({
           bookingCode: data.booking_code,
           bungalowName: bungalow.name,
-          totalPrice: totalPrice, // totalPrice lấy từ hàm calculateBookingDetails
+          totalPrice: totalPrice,
           customerName: customerForm.fullname
         });
       } else {
@@ -176,7 +175,6 @@ export default function BungalowDetail() {
     const days = [];
     const totalDaysInMonth = new Date(2026, 7 + 1, 0).getDate();
 
-    // 1. Tạo mốc so sánh "Ngày hôm nay" chuẩn định dạng YYYY-MM-DD
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
@@ -188,19 +186,16 @@ export default function BungalowDetail() {
       let statusText = 'Trống';
       let isDisabled = false;
 
-      // 2. KHÓA CÁC NGÀY TRONG QUÁ KHỨ
       if (currentDate < todayStr) {
         bgClass = 'bg-gray-100 text-gray-400 border-gray-200';
         statusText = 'Đã qua';
         isDisabled = true;
       } 
-      // 3. Khóa ngày ngoài phạm vi kinh doanh (available_from / to)
       else if (startDateStr && endDateStr && (currentDate < startDateStr || currentDate > endDateStr)) {
         bgClass = 'bg-gray-100 text-gray-300 border-gray-200 line-through';
         statusText = 'Không mở';
         isDisabled = true;
       } 
-      // 4. Quét trạng thái Booking (Đổi màu Xanh/Vàng/Đỏ)
       else {
         const status = dailyMap[currentDate] || 'available';
         if (status === 'booked') { 
@@ -218,7 +213,6 @@ export default function BungalowDetail() {
         }
       }
 
-      // Xử lý Highlight ngày khách đang click chọn
       const isSelected = selectedDates.length > 0 && (currentDate === selectedDates[0] || currentDate === selectedDates[1] || (selectedDates.length === 2 && currentDate > selectedDates[0] && currentDate < selectedDates[1]));
       if (isSelected && !isDisabled) {
         bgClass = 'bg-blue-600 text-white border-blue-700 shadow-md transform scale-105';
@@ -238,19 +232,13 @@ export default function BungalowDetail() {
     return days;
   };
 
-  // ==========================================
-  // GIAO DIỆN THANH TOÁN (HIỂN THỊ KHI ĐẶT PHÒNG THÀNH CÔNG)
-  // ==========================================
   if (bookingResult) {
-    // TÙY CHỈNH THÔNG TIN NGÂN HÀNG CỦA BẠN TẠI ĐÂY
-    const bankId = "VCB"; // Mã ngân hàng (VCB, MB, TCB, ACB, v.v...)
-    const accountNo = "1001000280804"; // Số tài khoản của bạn
-    const accountName = "HOANG NGOC LE"; // Tên chủ tài khoản
+    const bankId = "VCB"; 
+    const accountNo = "1001000280804"; 
+    const accountName = "HOANG NGOC LE"; 
     
-    // Tạo nội dung chuyển khoản: "Mã đặt phòng - Tên phòng"
     const transferContent = `${bookingResult.bookingCode} - ${bookingResult.bungalowName}`;
     
-    // URL API tạo ảnh QR động của VietQR (Tự động điền tiền và nội dung)
     const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${bookingResult.totalPrice}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(accountName)}`;
 
     return (
@@ -306,9 +294,6 @@ export default function BungalowDetail() {
     );
   }
 
-  // ==========================================
-  // GIAO DIỆN MẶC ĐỊNH (XEM VÀ ĐẶT PHÒNG)
-  // ==========================================
   return (
     <div className="max-w-6xl mx-auto p-6 bg-white rounded-xl shadow-lg mt-10 text-left">
       <button onClick={() => navigate(-1)} className="mb-4 text-sm text-blue-600 hover:underline">&larr; Quay lại</button>
@@ -373,7 +358,6 @@ export default function BungalowDetail() {
             <input type="tel" placeholder="Số điện thoại *" value={customerForm.phone} onChange={e => setCustomerForm({...customerForm, phone: e.target.value})} className="w-full border p-2 rounded text-sm" required />
             <input type="email" placeholder="Email nhận thông tin xác nhận *" value={customerForm.email} onChange={e => setCustomerForm({...customerForm, email: e.target.value})} className="w-full border p-2 rounded text-sm" required />
 
-            {/* Cho phép hiển thị Tổng tiền ngay cả khi chỉ chọn 1 ngày */}
             {selectedDates.length > 0 && (
               <div className="text-sm font-bold text-red-600 pt-1">
                 Tổng tiền tạm tính: {totalPrice.toLocaleString()} đ

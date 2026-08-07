@@ -26,11 +26,11 @@ export default function GalleryPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen pb-20">
-      <SEO title="Thư viện Hình ảnh & Video" description="Khám phá không gian thực tế tại Hoàng Lan Viên FarmStay qua những thước phim và hình ảnh sống động." />
+      <SEO title="Thư viện Hình ảnh & Video" description="Khám phá không gian thực tế tại Hoàng Hân FarmStay qua những thước phim và hình ảnh sống động." />
 
       <div className="bg-green-800 text-white py-16 text-center">
         <h1 className="text-4xl font-bold mb-2">Thư viện Khoảnh khắc</h1>
-        <p className="text-green-100">Hình ảnh và video thực tế tại Hoàng Lan Viên FarmStay</p>
+        <p className="text-green-100">Hình ảnh và video thực tế tại Hoàng Hân FarmStay</p>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -46,7 +46,7 @@ export default function GalleryPage() {
               </div>
             )}
             <div className="p-4">
-              <h3 className="font-bold text-gray-800">{item.title || "Khoảnh khắc tại Farmstay"}</h3>
+              <h3 className="font-bold text-gray-800">{item.title || "Khoảnh khắc tại Hoàng Hân FarmStay"}</h3>
             </div>
           </div>
         ))}

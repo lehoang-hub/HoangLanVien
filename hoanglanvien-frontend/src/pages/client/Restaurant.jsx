@@ -105,15 +105,15 @@ export default function Restaurant() {
     <div className="bg-gray-50 min-h-screen pb-24 relative">
         <SEO 
         title="Nhà hàng & Ẩm thực" 
-        description="Thưởng thức đặc sản vùng cao, ẩm thực tươi sạch và đồ uống mát lạnh tại nhà hàng Hoàng Lan Viên FarmStay."
-        url="https://hoanglanvien.com/restaurant"
+        description="Thưởng thức đặc sản vùng cao, ẩm thực tươi sạch và đồ uống mát lạnh tại nhà hàng Hoàng Hân FarmStay."
+        url="https://hoanghanfarmstay.com/restaurant"
       />
       {/* Banner */}
       <div className="bg-orange-800 text-white py-16 text-center shadow-inner relative overflow-hidden">
         <div className="absolute inset-0 bg-black/40 z-10"></div>
         <img src="https://images.unsplash.com/photo-1414235077428-338988a2e8c0?q=80&w=2000&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover" alt="Restaurant bg" />
         <div className="relative z-20">
-          <h1 className="text-4xl font-bold mb-4 drop-shadow-md">Nhà hàng Hoàng Lan</h1>
+          <h1 className="text-4xl font-bold mb-4 drop-shadow-md">Nhà hàng Hoàng Hân</h1>
           <p className="text-lg max-w-2xl mx-auto text-orange-50 px-4 drop-shadow">
             Thưởng thức đặc sản vùng cao và đồ uống tươi mát. Hỗ trợ phục vụ tận phòng Bungalow của bạn.
           </p>

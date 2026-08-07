@@ -1,13 +1,46 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>hoanglanvien-frontend</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<style>
+    /* 1. Ẩn nút chọn ngôn ngữ mặc định */
+    #google_translate_element { display: none !important; }
+
+    /* 2. Ẩn hoàn toàn thanh Banner trên cùng (Bao gồm cả phiên bản cũ và mới của Google) */
+    .goog-te-banner-frame { display: none !important; }
+    .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
+    .VIpgJd-ZVi9od-aZ2wEe-wOHMyf { display: none !important; }
+
+    /* 3. Ngăn Google tự động chèn khoảng trống đẩy website xuống dưới */
+    body { top: 0px !important; position: static !important; }
+    html { top: 0px !important; position: static !important; margin-top: 0px !important; }
+
+    /* 4. Ẩn các popup tooltip khó chịu khi khách hàng rê chuột vào văn bản */
+    .goog-text-highlight { background-color: transparent !important; box-shadow: none !important; }
+    #goog-gt-tt { display: none !important; }
+    .VIpgJd-ZVi9od-l4eHX-hSRGPd { display: none !important; }
+  </style>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hoanglanvien-frontend</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+  <div id="google_translate_element"></div>
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'vi', // Ngôn ngữ gốc của web là Tiếng Việt
+        includedLanguages: 'en,vi', // Chỉ cho phép dịch sang Tiếng Anh
+        autoDisplay: false
+      }, 'google_translate_element');
+    }
+  </script>
+  <script type="text/javascript"
+    src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+</body>
+
 </html>

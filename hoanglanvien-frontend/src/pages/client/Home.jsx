@@ -6,8 +6,8 @@ export default function Home() {
     <div>
         <SEO 
         title="Trang chủ" 
-        description="Hoàng Lan Viên FarmStay - Trốn khỏi ồn ào phố thị, tận hưởng không gian thiên nhiên trong lành và những căn bungalow ấm cúng."
-        url="https://hoanglanvien.com"
+        description="Hoàng Hân FarmStay - Trốn khỏi ồn ào phố thị, tận hưởng không gian thiên nhiên trong lành và những căn bungalow ấm cúng."
+        url="https://hoanghanfarmstay.com"
       />
       {/* Hero Section */}
       
@@ -25,7 +25,7 @@ export default function Home() {
             Nơi Bình Yên Gọi Tên
           </h1>
           <p className="text-xl text-gray-100 mb-8 max-w-2xl mx-auto drop-shadow-md">
-            Trốn khỏi ồn ào phố thị, tận hưởng không gian thiên nhiên trong lành và những căn bungalow ấm cúng tại Hoàng Lan Viên.
+            Trốn khỏi ồn ào phố thị, tận hưởng không gian thiên nhiên trong lành và những căn bungalow ấm cúng tại Hoàng Hân FarmStay.
           </p>
           <Link to="/bungalows" className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 text-lg font-bold px-8 py-3 rounded-full transition shadow-xl">
             Khám phá phòng nghỉ
