@@ -1,0 +1,14 @@
+# Môi trường ảo Python
+venv/
+env/
+
+# Các file rác hệ thống và cache của Python
+__pycache__/
+*.pyc
+.idea/
+
+# Biến môi trường (chứa mật khẩu quan trọng)
+.env
+
+# Cơ sở dữ liệu mặc định của Django
+db.sqlite3
