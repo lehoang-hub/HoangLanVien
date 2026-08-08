@@ -2,445 +2,98 @@ import { useState, useEffect } from 'react';
 
 export default function BungalowList() {
   const [bungalows, setBungalows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [editId, setEditId] = useState(null);
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    capacity: '',
-    maxCapacity: '',
-    price: '',
-    status: 'Trống',
-    availableFrom: '',
-    availableTo: '',
-    images: [], 
-    dailyStatus: {} 
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const fetchBungalows = () => {
-    fetch('http://localhost:8000/api/admin/bungalows')
-      .then(res => res.json())
-      .then(data => {
-        const roomList = Array.isArray(data) ? data : (data.data || data.bungalows || []);
-        setBungalows(roomList);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Lỗi tải dữ liệu:", err);
-        setBungalows([]);
-        setLoading(false);
-      });
-  };
-
+  // Tự động gọi API khi trang vừa tải xong
   useEffect(() => {
+    const fetchBungalows = async () => {
+      try {
+        // Trỏ thẳng vào cổng 8001 của Django. Không cần Header kẹp Token!
+        const response = await fetch('http://127.0.0.1:8001/api/bungalows/');
+
+        if (!response.ok) {
+          throw new Error('Không thể tải dữ liệu từ máy chủ');
+        }
+
+        const data = await response.json();
+        setBungalows(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchBungalows();
   }, []);
 
-  const handleDateChange = (field, value) => {
-    let updatedForm = { ...formData, [field]: value };
-    
-    if (updatedForm.availableFrom && updatedForm.availableTo) {
-      const start = new Date(updatedForm.availableFrom);
-      const end = new Date(updatedForm.availableTo);
-      const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24));
-      
-      if (diffDays > 30) {
-        alert("Khoảng thời gian lịch trống tối đa chỉ được 1 tháng (30 ngày)!");
-        return;
-      }
+  if (isLoading) {
+    return <div className="text-center py-20 text-gray-500 font-medium animate-pulse">Đang tải danh sách phòng...</div>;
+  }
 
-      let newDailyStatus = { ...updatedForm.dailyStatus };
-      let curr = new Date(start);
-      while (curr <= end) {
-        const dStr = curr.toISOString().split('T')[0];
-        if (!newDailyStatus[dStr]) {
-          newDailyStatus[dStr] = 'available';
-        }
-        curr.setDate(curr.getDate() + 1);
-      }
-      updatedForm.dailyStatus = newDailyStatus;
-    }
-
-    setFormData(updatedForm);
-  };
-
-  const handleOpenEdit = (room) => {
-    setEditId(room.id);
-    let vnStatus = 'Trống';
-    if (room.status === 'maintenance') vnStatus = 'Bảo trì';
-    if (room.status === 'inactive') vnStatus = 'Đang sử dụng';
-
-    setFormData({
-      name: room.name,
-      capacity: room.capacity || '',
-      maxCapacity: room.max_capacity || '',
-      price: room.base_price || 0,
-      status: vnStatus, 
-      availableFrom: room.available_from ? room.available_from.split('T')[0] : '',
-      availableTo: room.available_to ? room.available_to.split('T')[0] : '',
-      images: [],
-      dailyStatus: room.daily_status ? JSON.parse(room.daily_status) : {}
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleOpenDetail = (room) => {
-    setSelectedRoom(room);
-    setIsDetailModalOpen(true);
-  };
-
-  // Hàm lưu dữ liệu (Xử lý nén ảnh Base64 chống lỗi 413 Content Too Large tuyệt đối)
-  const handleSaveRoom = async (e) => {
-    e.preventDefault();
-
-    // 1. HÀM TỰ ĐỘNG NÉN ẢNH (Giúp giảm ảnh 5MB xuống còn ~200KB, xóa bỏ hoàn toàn lỗi 413)
-    const compressImage = (file) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-          const img = new Image();
-          img.src = event.target.result;
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            // Đặt kích thước tối đa để nén
-            const MAX_WIDTH = 1200; 
-            const MAX_HEIGHT = 1200;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height) {
-              if (width > MAX_WIDTH) {
-                height *= MAX_WIDTH / width;
-                width = MAX_WIDTH;
-              }
-            } else {
-              if (height > MAX_HEIGHT) {
-                width *= MAX_HEIGHT / height;
-                height = MAX_HEIGHT;
-              }
-            }
-            canvas.width = width;
-            canvas.height = height;
-            
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            // Nén thành JPEG với chất lượng 70%
-            canvas.toBlob((blob) => {
-              const newFile = new File([blob], file.name, {
-                type: 'image/jpeg',
-                lastModified: Date.now()
-              });
-              resolve(newFile);
-            }, 'image/jpeg', 0.7);
-          };
-        };
-      });
-    };
-
-    // 2. CHUẨN BỊ DỮ LIỆU
-    const dataToSend = new FormData();
-    dataToSend.append('name', formData.name);
-    dataToSend.append('capacity', formData.capacity);
-    dataToSend.append('max_capacity', formData.maxCapacity);
-    dataToSend.append('base_price', formData.price);
-    dataToSend.append('status', formData.status);
-    
-    if (formData.availableFrom) dataToSend.append('available_from', formData.availableFrom);
-    if (formData.availableTo) dataToSend.append('available_to', formData.availableTo);
-    
-    if (formData.dailyStatus && Object.keys(formData.dailyStatus).length > 0) {
-      dataToSend.append('daily_status', JSON.stringify(formData.dailyStatus)); 
-    }
-    
-    // 3. THỰC HIỆN NÉN VÀ ĐÍNH KÈM TẤT CẢ FILE ẢNH
-    if (formData.images && formData.images.length > 0) {
-      for (let i = 0; i < formData.images.length; i++) {
-        // Nén từng ảnh trước khi append vào FormData
-        const compressedFile = await compressImage(formData.images[i]);
-        dataToSend.append('images[]', compressedFile);
-      }
-    }
-    
-    // 4. GỬI REQUEST
-    let url = editId 
-      ? `http://localhost:8000/api/admin/bungalows/${editId}/update` 
-      : `http://localhost:8000/api/admin/bungalows`;
-
-    fetch(url, {
-      method: 'POST',
-      headers: { 
-        'Accept': 'application/json' 
-      },
-      body: dataToSend
-    })
-    .then(async res => {
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Lỗi máy chủ!");
-      return data;
-    })
-    .then(() => {
-      alert(editId ? "Cập nhật phòng thành công!" : "Thêm phòng mới thành công!");
-      setIsModalOpen(false);
-      fetchBungalows();
-    })
-    .catch(err => alert("Lưu thất bại: " + err.message));
-  };
-
-  const renderEditDailySchedule = () => {
-    if (!formData.availableFrom || !formData.availableTo) return null;
-
-    const start = new Date(formData.availableFrom);
-    const end = new Date(formData.availableTo);
-    const elements = [];
-
-    let curr = new Date(start);
-    while (curr <= end) {
-      const dStr = curr.toISOString().split('T')[0];
-      const currentStatus = formData.dailyStatus[dStr] || 'available';
-
-      elements.push(
-        <div key={dStr} className="flex justify-between items-center bg-white p-2 border rounded">
-          <span className="text-sm font-medium">{dStr}</span>
-          <select 
-            value={currentStatus}
-            onChange={(e) => {
-              setFormData({
-                ...formData,
-                dailyStatus: { ...formData.dailyStatus, [dStr]: e.target.value }
-              });
-            }}
-            className="border text-xs p-1 rounded bg-gray-50 font-semibold"
-          >
-            <option value="available">🟡 Trống</option>
-            <option value="booked">⚪ Đã đặt (Chưa check-in)</option>
-            <option value="occupied">🟢 Khách đang ở</option>
-            <option value="maintenance">🔴 Bảo trì</option>
-          </select>
-        </div>
-      );
-      curr.setDate(curr.getDate() + 1);
-    }
-    return <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto border p-2 rounded bg-gray-50">{elements}</div>;
-  };
-
-  const renderDetailCalendar = () => {
-    if (!selectedRoom || !selectedRoom.available_from || !selectedRoom.available_to) {
-      return <p className="text-gray-500 italic">Phòng này chưa thiết lập lịch.</p>;
-    }
-
-    const start = new Date(selectedRoom.available_from);
-    const end = new Date(selectedRoom.available_to);
-    const days = [];
-    const dailyMap = selectedRoom.daily_status ? JSON.parse(selectedRoom.daily_status) : {};
-
-    let curr = new Date(start);
-    while (curr <= end) {
-      const dateStr = curr.toISOString().split('T')[0];
-      const status = dailyMap[dateStr] || 'available';
-
-      let statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      let statusText = 'Trống';
-
-      if (status === 'booked') { statusClass = 'bg-gray-200 text-gray-700 border-gray-300'; statusText = 'Đã đặt'; }
-      else if (status === 'occupied') { statusClass = 'bg-green-100 text-green-800 border-green-300'; statusText = 'Đang ở'; }
-      else if (status === 'maintenance') { statusClass = 'bg-red-100 text-red-800 border-red-300'; statusText = 'Bảo trì'; }
-
-      days.push(
-        <div key={dateStr} className={`p-3 rounded-lg border text-center font-semibold ${statusClass}`}>
-          <div className="text-sm">{dateStr}</div>
-          <div className="text-xs uppercase mt-1 font-bold">{statusText}</div>
-        </div>
-      );
-      curr.setDate(curr.getDate() + 1);
-    }
-    return <div className="grid grid-cols-4 gap-3">{days}</div>;
-  };
-
-  if (loading) return <div className="p-10 text-center">Đang tải dữ liệu...</div>;
+  if (error) {
+    return <div className="text-center py-20 text-red-500 font-medium">Lỗi: {error}</div>;
+  }
 
   return (
-    <div>
-      {/* Tiêu đề trang và nút Thêm phòng mới */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Quản lý Bungalow</h1>
-        <button 
-          onClick={() => {
-            setEditId(null);
-            setFormData({
-              name: '',
-              capacity: '',
-              maxCapacity: '',
-              price: '',
-              status: 'Trống',
-              availableFrom: '',
-              availableTo: '',
-              images: [],
-              dailyStatus: {}
-            });
-            setIsModalOpen(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg shadow transition"
-        >
-          + Thêm phòng mới
-        </button>
-      </div>
-      
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700 uppercase text-sm">
-              <th className="px-6 py-4 border-b">Hình ảnh</th>
-              <th className="px-6 py-4 border-b">Tên phòng</th>
-              <th className="px-6 py-4 border-b">Giá / Đêm</th>
-              <th className="px-6 py-4 border-b">Lịch trống</th>
-              <th className="px-6 py-4 border-b text-right">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bungalows.map((room) => (
-              <tr key={room.id} className="hover:bg-gray-50 border-b">
-                <td className="px-6 py-4">
-                  {room.image ? (
-                    <img src={`http://localhost:8000/${room.image}`} alt={room.name} className="w-16 h-12 object-cover rounded border" />
-                  ) : (
-                    <span className="text-gray-400 italic text-sm">Chưa có ảnh</span>
-                  )}
-                </td>
-                <td className="px-6 py-4">
-                  <p className="font-bold text-gray-900">{room.name}</p>
-                  <p className="text-xs text-gray-500">Sức chứa: {room.capacity}</p>
-                </td>
-                <td className="px-6 py-4 font-bold text-red-600">
-                  {Number(room.base_price).toLocaleString()} đ
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {room.available_from && room.available_to ? (
-                    <span>{new Date(room.available_from).toLocaleDateString('vi-VN')} - {new Date(room.available_to).toLocaleDateString('vi-VN')}</span>
-                  ) : (
-                    <span className="text-gray-400 italic">Chưa thiết lập</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  <button onClick={() => handleOpenDetail(room)} className="text-green-600 hover:underline font-medium">Chi tiết</button>
-                  <button onClick={() => handleOpenEdit(room)} className="text-blue-600 hover:underline font-medium">Sửa lịch / Trạng thái</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="text-center mb-12">
+        <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+          Khám phá <span className="text-green-700">Bungalow</span> của chúng tôi
+        </h2>
+        <p className="mt-4 text-xl text-gray-500">
+          Tận hưởng không gian hòa mình vào thiên nhiên tại Hoàng Hân FarmStay.
+        </p>
       </div>
 
-      {/* MODAL THÊM MỚI / SỬA THÔNG TIN & CHỌN NHIỀU ẢNH */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">{editId ? "Sửa thông tin & Lịch trình Bungalow" : "Thêm mới Bungalow"}</h2>
-            <form onSubmit={handleSaveRoom} className="space-y-4 text-left">
-              <div>
-                <label className="block text-sm font-medium mb-1">Tên phòng *</label>
-                <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full border rounded px-3 py-2" required />
-              </div>
+      {/* Dàn Grid hiển thị danh sách phòng */}
+      <div className="grid grid-cols-1 gap-y-10 sm:grid-cols-2 gap-x-6 lg:grid-cols-3 xl:gap-x-8">
+        {bungalows.map((room) => (
+          <div key={room.id} className="group relative bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden">
 
-              {/* Thay thế phần Sức chứa và Giá tiền cũ bằng đoạn chia 3 cột này */}
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Sức chứa *</label>
-                  <input 
-                    type="text" 
-                    value={formData.capacity} 
-                    onChange={(e) => setFormData({...formData, capacity: e.target.value})} 
-                    className="w-full border rounded px-3 py-2" 
-                    required 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Sức chứa tối đa *</label>
-                  <input 
-                    type="number" 
-                    value={formData.maxCapacity} 
-                    onChange={(e) => setFormData({...formData, maxCapacity: e.target.value})} 
-                    className="w-full border rounded px-3 py-2" 
-                    required 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Giá / Đêm (VNĐ) *</label>
-                  <input 
-                    type="number" 
-                    value={formData.price} 
-                    onChange={(e) => setFormData({...formData, price: e.target.value})} 
-                    className="w-full border rounded px-3 py-2" 
-                    required 
-                  />
-                </div>
-              </div>
-
-              {/* Input chọn nhiều ảnh */}
-              <div>
-                <label className="block text-sm font-medium mb-1">Hình ảnh Bungalow (Có thể chọn nhiều ảnh)</label>
-                <input 
-                  type="file" 
-                  multiple 
-                  accept="image/*" 
-                  onChange={(e) => setFormData({...formData, images: e.target.files})} 
-                  className="w-full border rounded px-3 py-2 text-sm bg-gray-50" 
-                />
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg border">
-                <h3 className="font-semibold text-sm uppercase mb-2">Khoảng thời gian lịch trống (Tối đa 1 tháng)</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm mb-1">Từ ngày</label>
-                    <input type="date" value={formData.availableFrom} onChange={(e) => handleDateChange('availableFrom', e.target.value)} className="w-full border rounded px-3 py-2" />
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-1">Đến ngày</label>
-                    <input type="date" value={formData.availableTo} onChange={(e) => handleDateChange('availableTo', e.target.value)} className="w-full border rounded px-3 py-2" />
-                  </div>
-                </div>
-
-                {renderEditDailySchedule()}
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2 bg-gray-200 rounded-lg">Hủy</button>
-                <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg">Lưu thay đổi</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL XEM CHI TIẾT LỊCH TRỐNG THEO MÀU */}
-      {isDetailModalOpen && selectedRoom && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4 border-b pb-3">
-              <h2 className="text-xl font-bold">Lịch chi tiết phòng: {selectedRoom.name}</h2>
-              <button onClick={() => setIsDetailModalOpen(false)} className="text-gray-500 text-2xl">&times;</button>
-            </div>
-            
-            <div className="flex gap-4 mb-4 text-xs font-semibold">
-              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 border rounded">🟡 Trống</span>
-              <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded">⚪ Đã đặt (Chưa check-in)</span>
-              <span className="px-2 py-1 bg-green-100 text-green-800 rounded">🟢 Khách đang ở</span>
-              <span className="px-2 py-1 bg-red-100 text-red-800 rounded">🔴 Bảo trì</span>
+            {/* Khung ảnh (Bạn nhớ thay trường 'image' bằng tên cột ảnh thực tế trong DB) */}
+            <div className="w-full h-56 bg-gray-200 aspect-w-1 aspect-h-1 rounded-t-2xl overflow-hidden group-hover:opacity-90 transition-opacity">
+              <img
+                src={room.image || "https://images.unsplash.com/photo-1587061949409-02df41d5e562?q=80&w=800&auto=format&fit=crop"}
+                alt={room.name}
+                className="w-full h-full object-center object-cover"
+              />
             </div>
 
-            {renderDetailCalendar()}
+            {/* Nội dung thông tin */}
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                {room.name}
+              </h3>
 
-            <div className="flex justify-end mt-6 pt-4 border-t">
-              <button onClick={() => setIsDetailModalOpen(false)} className="px-6 py-2 bg-gray-600 text-white rounded-lg">Đóng</button>
+              <div className="flex items-center text-sm text-gray-500 mb-4">
+                <span className="mr-4 flex items-center">
+                  👥 Tối đa: {room.capacity || 2} khách
+                </span>
+                <span className="flex items-center">
+                  🛏️ {room.bed_type || '1 Giường đôi'}
+                </span>
+              </div>
+
+              <p className="text-gray-600 text-sm line-clamp-2 mb-6">
+                {room.description || 'Không gian nghỉ dưỡng tuyệt vời với đầy đủ tiện nghi, mang lại trải nghiệm đáng nhớ cho bạn và người thân.'}
+              </p>
+
+              <div className="flex items-center justify-between mt-auto">
+                <p className="text-2xl font-extrabold text-green-700">
+                  {/* Định dạng tiền tệ VND */}
+                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.price || 500000)}
+                </p>
+
+                <button className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                  Đặt ngay
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }

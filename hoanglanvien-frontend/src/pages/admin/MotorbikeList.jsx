@@ -22,7 +22,7 @@ export default function MotorbikeList() {
   });
 
   const fetchMotorbikes = () => {
-    fetch('http://localhost:8000/api/admin/motorbikes')
+    fetch('${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes')
       .then(res => res.json())
       .then(data => {
         const motorbikeList = Array.isArray(data) ? data : (data.data || data.motorbikes || []);
@@ -183,8 +183,8 @@ export default function MotorbikeList() {
 
     // 4. GỬI REQUEST
     let url = editId
-      ? `http://localhost:8000/api/admin/motorbikes/${editId}/update`
-      : `http://localhost:8000/api/admin/motorbikes`;
+      ? `${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes/${editId}/update`
+      : `${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes`;
 
     fetch(url, {
       method: 'POST',
@@ -335,7 +335,7 @@ export default function MotorbikeList() {
               try {
                 const imageList = typeof bike.images === 'string' ? JSON.parse(bike.images) : (bike.images || []);
                 if (imageList.length > 0) {
-                  imageUrl = `http://localhost:8000/${imageList[0].url || imageList[0]}`;
+                  imageUrl = `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${imageList[0].url || imageList[0]}`;
                 }
               } catch (e) {}
 

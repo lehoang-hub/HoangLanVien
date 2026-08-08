@@ -8,7 +8,7 @@ export default function VideoList() {
 
   // Lấy danh sách video từ Database
   const fetchVideos = () => {
-    fetch('http://localhost:8000/api/admin/galleries?type=video')
+    fetch('${import.meta.env.VITE_API_BASE_URL}/admin/galleries?type=video')
       .then(res => res.json())
       .then(data => setVideos(Array.isArray(data) ? data : []))
       .catch(err => console.error("Lỗi tải video:", err));
@@ -22,7 +22,7 @@ export default function VideoList() {
     if (!videoUrl) return alert("Vui lòng nhập đường dẫn Video!");
 
     try {
-      const res = await fetch('http://localhost:8000/api/admin/galleries', {
+      const res = await fetch('${import.meta.env.VITE_API_BASE_URL}/admin/galleries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ type: 'video', title, video_url: videoUrl })
@@ -47,7 +47,7 @@ export default function VideoList() {
   const handleDelete = async (id) => {
     if (confirm("Bạn có chắc chắn muốn xóa video này không?")) {
       try {
-        const res = await fetch(`http://localhost:8000/api/admin/galleries/${id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/galleries/${id}`, {
           method: 'DELETE',
           headers: { 'Accept': 'application/json' }
         });

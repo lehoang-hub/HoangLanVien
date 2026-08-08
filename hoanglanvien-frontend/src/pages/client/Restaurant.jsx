@@ -15,7 +15,7 @@ export default function Restaurant() {
 
   // Lấy dữ liệu từ Database khi Load trang
   useEffect(() => {
-    fetch('http://localhost:8000/api/client/menu-items')
+    fetch('${import.meta.env.VITE_API_BASE_URL}/client/menu-items')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -74,7 +74,7 @@ export default function Restaurant() {
         {/* Kiểm tra nếu có link ảnh thì hiển thị ảnh, ngược lại hiển thị dòng chữ Không có ảnh */}
         {item.image ? (
           <img 
-            src={`http://localhost:8000/${item.image}`} 
+            src={`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${item.image}`}
             alt={item.name} 
             className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" 
           />

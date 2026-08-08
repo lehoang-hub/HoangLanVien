@@ -5,9 +5,9 @@ export default function UserAuth() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Nhận diện xem khách muốn mở form Đăng nhập hay Đăng ký từ Header truyền sang
+  // Nhận diện xem khách muốn mở form Đăng nhập hay Đăng ký từ Header truyền sang[cite: 1]
   const [isLogin, setIsLogin] = useState(location.state?.isLogin ?? true);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -20,7 +20,7 @@ export default function UserAuth() {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Cập nhật form tự động nếu khách bấm qua lại trên Menu Header
+  // Cập nhật form tự động nếu khách bấm qua lại trên Menu Header[cite: 1]
   useEffect(() => {
     if (location.state?.isLogin !== undefined) {
       setIsLogin(location.state.isLogin);
@@ -41,29 +41,31 @@ export default function UserAuth() {
 
     if (isLogin) {
       // ==========================================
-      // LOGIC 1: XỬ LÝ ĐĂNG NHẬP
+      // LOGIC 1: XỬ LÝ ĐĂNG NHẬP (Trỏ về Django 8001)
       // ==========================================
       try {
-        const response = await fetch('http://localhost:8000/api/client/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password
-          })
-        });
-        
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/token/`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  body: JSON.stringify({
+    email: formData.email,
+    password: formData.password
+  })
+});
+
         const data = await response.json();
 
-        if (response.ok && data.token) {
-          // Lưu token vào trình duyệt
-          localStorage.setItem('userToken', data.token);
+        // Django trả về data.access thay vì data.token
+        if (response.ok && data.access) {
+          // Lưu bộ chìa khóa JWT vào trình duyệt
+          localStorage.setItem('userToken', data.access);
+          localStorage.setItem('refreshToken', data.refresh);
           localStorage.setItem('userData', JSON.stringify(data.user));
-          
-          // Đăng nhập thành công -> Về trang chủ hoặc trang trước đó
-          navigate('/');
+
+          // Đăng nhập thành công -> Về trang chủ hoặc trang trước đó[cite: 1]
+          window.location.href = '/';
         } else {
-          setError(data.message || 'Tài khoản hoặc mật khẩu không chính xác!');
+          setError(data.detail || 'Tài khoản hoặc mật khẩu không chính xác!');
         }
       } catch (err) {
         setError('Lỗi kết nối đến máy chủ. Vui lòng thử lại!');
@@ -71,7 +73,7 @@ export default function UserAuth() {
 
     } else {
       // ==========================================
-      // LOGIC 2: XỬ LÝ ĐĂNG KÝ
+      // LOGIC 2: XỬ LÝ ĐĂNG KÝ (Trỏ về Django 8001)
       // ==========================================
       if (formData.password !== formData.password_confirmation) {
         setError('Mật khẩu nhập lại không khớp!');
@@ -80,35 +82,31 @@ export default function UserAuth() {
       }
 
       try {
-        const response = await fetch('http://localhost:8000/api/client/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            password: formData.password,
-            password_confirmation: formData.password_confirmation
-          })
-        });
-        
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/register/`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  body: JSON.stringify({
+    name: formData.name,
+    email: formData.email,
+    password: formData.password
+  })
+});
+
         const data = await response.json();
 
         if (response.ok) {
           setSuccess('Đăng ký thành công! Vui lòng đăng nhập.');
-          // Đăng ký xong tự động lật sang form Login và xóa mật khẩu cũ
+          // Đăng ký xong tự động lật sang form Login và xóa mật khẩu cũ[cite: 1]
           setIsLogin(true);
           setFormData({ ...formData, password: '', password_confirmation: '' });
         } else {
-          // Xử lý hiển thị lỗi validate từ Laravel (nếu có)
-          const errorMsg = data.errors ? Object.values(data.errors)[0][0] : data.message;
-          setError(errorMsg || 'Đăng ký thất bại, vui lòng kiểm tra lại thông tin!');
+          setError(data.detail || 'Đăng ký thất bại, vui lòng kiểm tra lại thông tin!');
         }
       } catch (err) {
         setError('Lỗi kết nối đến máy chủ. Vui lòng thử lại!');
       }
     }
-    
+
     setIsLoading(false);
   };
 
@@ -125,7 +123,7 @@ export default function UserAuth() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-gray-100">
-          
+
           {/* Khu vực hiển thị thông báo Lỗi / Thành công */}
           {error && (
             <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center border border-red-200 animate-fade-in">
@@ -139,8 +137,8 @@ export default function UserAuth() {
           )}
 
           <form className="space-y-5" onSubmit={handleSubmit}>
-            
-            {/* CÁC TRƯỜNG CHỈ HIỆN KHI ĐĂNG KÝ */}
+
+            {/* CÁC TRƯỜNG CHỈ HIỆN KHI ĐĂNG KÝ[cite: 1] */}
             {!isLogin && (
               <div className="animate-fade-in space-y-5">
                 <div>
@@ -170,7 +168,7 @@ export default function UserAuth() {
               </div>
             )}
 
-            {/* EMAIL & PASSWORD (Dùng chung) */}
+            {/* EMAIL & PASSWORD (Dùng chung)[cite: 1] */}
             <div>
               <label className="block text-sm font-medium text-gray-700">Địa chỉ Email</label>
               <input
@@ -197,7 +195,7 @@ export default function UserAuth() {
               />
             </div>
 
-            {/* XÁC NHẬN MẬT KHẨU (Chỉ hiện khi Đăng ký) */}
+            {/* XÁC NHẬN MẬT KHẨU (Chỉ hiện khi Đăng ký)[cite: 1] */}
             {!isLogin && (
               <div className="animate-fade-in">
                 <label className="block text-sm font-medium text-gray-700">Nhập lại Mật khẩu</label>
@@ -232,7 +230,7 @@ export default function UserAuth() {
             </button>
           </form>
 
-          {/* Dòng text điều hướng chuyển đổi form */}
+          {/* Dòng text điều hướng chuyển đổi form[cite: 1] */}
           <div className="mt-8 text-center text-sm text-gray-600">
             {isLogin ? "Chưa có tài khoản? " : "Đã có tài khoản? "}
             <button

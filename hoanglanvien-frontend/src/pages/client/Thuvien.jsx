@@ -6,7 +6,7 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/client/galleries')
+    fetch('${import.meta.env.VITE_API_BASE_URL}/client/galleries')
       .then(res => res.json())
       .then(data => {
         setItems(Array.isArray(data) ? data : []);
@@ -38,7 +38,7 @@ export default function GalleryPage() {
           <div key={item.id} className="bg-white rounded-xl shadow overflow-hidden border">
             {item.type === 'image' ? (
               <div className="h-60">
-                <img src={`http://localhost:8000/${item.file_path}`} alt={item.title} className="w-full h-full object-cover" />
+                <img src={`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${item.file_path}`} alt={item.title} className="w-full h-full object-cover" />
               </div>
             ) : (
               <div className="aspect-video">

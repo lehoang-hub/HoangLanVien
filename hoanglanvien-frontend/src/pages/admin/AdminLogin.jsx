@@ -2,32 +2,63 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminLogin() {
-  const [username, setUsername] = useState('');
+  // Đổi tên state username thành email cho chuẩn với Backend mới
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // Thêm trạng thái loading
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
-    e.preventDefault(); // Ngăn form tự động reload lại trang
-    
-    // Kiểm tra tài khoản và mật khẩu
-    if (username === 'admin' && password === '8888') {
-      // Lưu trạng thái đăng nhập vào bộ nhớ trình duyệt
-      localStorage.setItem('isAdminLoggedIn', 'true');
-      
-      // Đăng nhập thành công -> Chuyển hướng thẳng vào trang Admin
-      navigate('/admin');
-    } else {
-      // Đăng nhập thất bại -> Hiển thị lỗi
-      setError('Tài khoản hoặc mật khẩu không chính xác!');
+  const handleLogin = async (e) => {
+    e.preventDefault(); // Ngăn form tự động reload lại trang[cite: 2]
+    setError('');
+    setIsLoading(true);
+
+    try {
+      // Gọi API Đăng nhập của Django ở cổng 8001
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/token/`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  body: JSON.stringify({
+    email: email,
+    password: password
+  })
+});
+
+      const data = await response.json();
+
+      if (response.ok && data.access) {
+        // Kiểm tra phân quyền: Chỉ cho phép tài khoản có role khác 'customer' (như admin, receptionist...) vào trang quản trị
+        // Chỉ cho phép tài khoản có cột role chính xác là 'admin' được vào
+        if (data.user.role === 'admin')  {
+          // Lưu trạng thái đăng nhập và token vào bộ nhớ trình duyệt
+          localStorage.setItem('isAdminLoggedIn', 'true'); // Giữ lại cờ xác nhận cũ của bạn[cite: 2]
+          localStorage.setItem('adminToken', data.access);
+          localStorage.setItem('adminRefreshToken', data.refresh);
+          localStorage.setItem('adminData', JSON.stringify(data.user));
+
+          // Đăng nhập thành công -> Chuyển hướng thẳng vào trang Admin[cite: 2]
+          navigate('/admin');
+        } else {
+          // Nếu là tài khoản khách hàng đi lạc vào trang Admin
+          setError('Tài khoản của bạn không có quyền truy cập trang quản trị!');
+        }
+      } else {
+        // Đăng nhập thất bại -> Hiển thị lỗi[cite: 2]
+        setError(data.detail || 'Tài khoản hoặc mật khẩu không chính xác!');
+      }
+    } catch (err) {
+      setError('Lỗi kết nối đến máy chủ. Vui lòng thử lại!');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full mx-4">
-        
-        {/* Tiêu đề & Logo */}
+
+        {/* Tiêu đề & Logo[cite: 2] */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-green-700 tracking-wider">
             Hoàng Hân <span className="text-yellow-500">FarmStay</span>
@@ -42,22 +73,22 @@ export default function AdminLogin() {
           </div>
         )}
 
-        {/* Form nhập liệu */}
+        {/* Form nhập liệu[cite: 2] */}
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">
-              Tên đăng nhập
+              Email đăng nhập
             </label>
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-              placeholder="Nhập admin..."
+              placeholder="Nhập email quản trị viên..."
               required
             />
           </div>
-          
+
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">
               Mật khẩu
@@ -67,16 +98,19 @@ export default function AdminLogin() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-              placeholder="Nhập 8888..."
+              placeholder="Nhập mật khẩu..."
               required
             />
           </div>
-          
+
           <button
             type="submit"
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-md mt-2"
+            disabled={isLoading}
+            className={`w-full text-white font-bold py-3 px-4 rounded-lg transition-all shadow-md mt-2 ${
+              isLoading ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+            }`}
           >
-            Đăng nhập
+            {isLoading ? 'Đang xác thực...' : 'Đăng nhập'}
           </button>
         </form>
 

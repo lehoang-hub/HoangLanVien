@@ -15,8 +15,8 @@ export default function MotorbikeDetail() {
   const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
-    fetch(`http://localhost:8000/api/admin/motorbikes/${id}`)
-      .then(res => res.json())
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes/${id}`)
+  .then(res => res.json())
       .then(data => { setMotorbike(data); setLoading(false); })
       .catch(err => { console.error(err); setLoading(false); });
   }, [id]);
@@ -94,10 +94,11 @@ export default function MotorbikeDetail() {
       motorbike_id: motorbike.id, notes: "Khách đặt thuê xe từ Web"
     };
 
-    fetch('http://localhost:8000/api/client/motorbike-bookings', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(bookingData)
-    })
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/motorbike-bookings`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  body: JSON.stringify(bookingData)
+})
     .then(res => res.json())
     .then(data => {
       if (data.success) {
@@ -202,7 +203,7 @@ export default function MotorbikeDetail() {
         <div className="relative">
           {imageList.length > 0 ? (
             <div className="relative w-full h-80 rounded-xl overflow-hidden shadow-md bg-black">
-              <img src={`http://localhost:8000/${imageList[currentImageIndex]}`} alt={motorbike.name} className="w-full h-full object-cover" />
+              <img src={`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${imageList[currentImageIndex]}`} alt={motorbike.name} className="w-full h-full object-cover" />
               {imageList.length > 1 && <button onClick={handlePrevImage} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full">&#10094;</button>}
               {imageList.length > 1 && <button onClick={handleNextImage} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full">&#10095;</button>}
             </div>

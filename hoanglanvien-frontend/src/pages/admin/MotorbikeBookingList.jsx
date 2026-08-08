@@ -6,8 +6,8 @@ export default function MotorbikeBookingList() {
 
   // Lấy dữ liệu danh sách đặt phòng
   const fetchMotorbikeBookings = () => {
-    fetch('http://localhost:8000/api/admin/motorbike-bookings')
-      .then(res => res.json())
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/motorbike-bookings`)
+  .then(res => res.json())
       .then(data => {
         const MotorbikeBookingList = Array.isArray(data) ? data : (data.data || []);
         setBookings(MotorbikeBookingList);
@@ -28,14 +28,14 @@ export default function MotorbikeBookingList() {
   const handleUpdateStatus = (id, newStatus) => {
     if (!window.confirm("Bạn có chắc chắn muốn chuyển trạng thái đơn này?")) return;
 
-    fetch(`http://localhost:8000/api/admin/motorbike-bookings/${id}/status`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json' 
-      },
-      body: JSON.stringify({ status: newStatus })
-    })
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/motorbike-bookings/${id}/status`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  body: JSON.stringify({ status: newStatus })
+})
     .then(res => res.json())
     .then(data => {
       if (data.success) {

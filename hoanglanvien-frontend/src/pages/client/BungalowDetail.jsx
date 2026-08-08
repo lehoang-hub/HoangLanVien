@@ -20,8 +20,8 @@ export default function BungalowDetail() {
   const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
-    fetch(`http://localhost:8000/api/admin/bungalows/${id}`)
-      .then(res => res.json())
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/bungalows/${id}`)
+  .then(res => res.json())
       .then(data => {
         setBungalow(data);
         setLoading(false);
@@ -147,11 +147,11 @@ export default function BungalowDetail() {
       notes: "Khách đặt từ trang chi tiết Bungalow"
     };
 
-    fetch('http://localhost:8000/api/client/bookings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(bookingData)
-    })
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/bookings`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  body: JSON.stringify(bookingData)
+})
     .then(res => res.json())
     .then(data => {
       if (data.success) {
@@ -303,7 +303,7 @@ export default function BungalowDetail() {
           {imageList.length > 0 ? (
             <div className="relative w-full h-80 rounded-xl overflow-hidden shadow-md border bg-black">
               <img 
-                src={`http://localhost:8000/${imageList[currentImageIndex]}`} 
+                src={`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${imageList[currentImageIndex]}`}
                 alt={bungalow.name} 
                 className="w-full h-full object-cover transition-all duration-300" 
               />

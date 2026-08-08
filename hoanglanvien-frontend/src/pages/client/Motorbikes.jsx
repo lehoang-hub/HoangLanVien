@@ -21,7 +21,7 @@ export default function Motorbikes() {
   // ==========================================
   useEffect(() => {
     // Đã xóa dòng fetch bị lặp
-    fetch('http://localhost:8000/api/admin/motorbikes')
+    fetch('${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes')
       .then(res => {
         if (!res.ok) {
           console.error("Lỗi mạng HTTP:", res.status);
@@ -94,7 +94,7 @@ export default function Motorbikes() {
               try {
                 const imageList = typeof motorbike.images === 'string' ? JSON.parse(motorbike.images) : (motorbike.images || []);
                 if (imageList.length > 0) {
-                  imageUrl = `http://localhost:8000/${imageList[0].url || imageList[0]}`;
+                  imageUrl = `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${imageList[0].url || imageList[0]}`;
                 }
               } catch (e) {}
 

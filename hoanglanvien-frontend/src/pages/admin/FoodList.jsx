@@ -10,7 +10,7 @@ export default function FoodList() {
   const [imageFile, setImageFile] = useState(null); // State lưu file ảnh
 
   const fetchFoods = () => {
-    fetch('http://localhost:8000/api/admin/menu-items?type=food')
+    fetch('${import.meta.env.VITE_API_BASE_URL}/admin/menu-items?type=food')
       .then(res => res.json())
       .then(data => setFoods(data))
       .catch(err => console.error("Lỗi lấy dữ liệu:", err));
@@ -32,7 +32,7 @@ export default function FoodList() {
         data.append('image', imageFile);
       }
 
-      const response = await fetch('http://localhost:8000/api/admin/menu-items', {
+      const response = await fetch('${import.meta.env.VITE_API_BASE_URL}/admin/menu-items', {
         method: 'POST',
         headers: { 'Accept': 'application/json' }, // Không để Content-Type khi dùng FormData để trình duyệt tự nhận diện
         body: data
@@ -77,7 +77,7 @@ export default function FoodList() {
               <tr key={item.id} className="border-t hover:bg-gray-50">
                 <td className="px-6 py-4">
                   {item.image ? (
-                    <img src={`http://localhost:8000/${item.image}`} alt={item.name} className="w-12 h-12 object-cover rounded" />
+                    <img src={`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${item.image}`} alt={item.name} className="w-12 h-12 object-cover rounded" />
                   ) : (
                     <span className="text-xs text-gray-400">Không có</span>
                   )}

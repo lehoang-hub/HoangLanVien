@@ -8,7 +8,7 @@ export default function ImageList() {
 
   // Lấy danh sách ảnh từ Database
   const fetchImages = () => {
-    fetch('http://localhost:8000/api/admin/galleries?type=image')
+    fetch('${import.meta.env.VITE_API_BASE_URL}/admin/galleries?type=image')
       .then(res => res.json())
       .then(data => setImages(Array.isArray(data) ? data : []))
       .catch(err => console.error("Lỗi tải ảnh:", err));
@@ -27,7 +27,7 @@ export default function ImageList() {
     data.append('file_path', imageFile);
 
     try {
-      const res = await fetch('http://localhost:8000/api/admin/galleries', {
+      const res = await fetch('${import.meta.env.VITE_API_BASE_URL}/admin/galleries', {
         method: 'POST',
         headers: { 'Accept': 'application/json' },
         body: data
@@ -52,7 +52,7 @@ export default function ImageList() {
   const handleDelete = async (id) => {
     if (confirm("Bạn có chắc chắn muốn xóa ảnh này không?")) {
       try {
-        const res = await fetch(`http://localhost:8000/api/admin/galleries/${id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/galleries/${id}`, {
           method: 'DELETE',
           headers: { 'Accept': 'application/json' }
         });
@@ -83,7 +83,7 @@ export default function ImageList() {
         {images.map(img => (
           <div key={img.id} className="bg-white rounded-xl shadow overflow-hidden border border-gray-100 flex flex-col">
             <div className="h-40 bg-gray-200">
-              <img src={`http://localhost:8000/${img.file_path}`} alt={img.title} className="w-full h-full object-cover" />
+              <img src={`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${img.file_path}`} alt={img.title} className="w-full h-full object-cover" />
             </div>
             <div className="p-3 flex-1 flex flex-col justify-between">
               <p className="text-sm font-semibold text-gray-800 truncate">{img.title || "Không có tiêu đề"}</p>
