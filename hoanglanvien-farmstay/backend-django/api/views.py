@@ -24,9 +24,9 @@ class BookingViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
 class BungalowViewSet(viewsets.ModelViewSet):
-    queryset = Bungalows.objects.all()
-    serializer_class = BungalowSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+        # Trỏ đến Database, lấy dữ liệu thật và sắp xếp phòng mới thêm lên đầu
+        queryset = Bungalows.objects.all().order_by('-id')
+        serializer_class = BungalowSerializer
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customers.objects.all()

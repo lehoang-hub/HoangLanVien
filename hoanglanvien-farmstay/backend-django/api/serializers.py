@@ -69,3 +69,4 @@ class UserSerializer(serializers.ModelSerializer):
         # ⚠️ Lưu ý Bảo mật: Riêng bảng Users, chúng ta không dùng '__all__'
         # để tránh việc vô tình trả về cột 'password' ra ngoài API cho Frontend.
         fields = ['id', 'name', 'email', 'role', 'created_at']
+

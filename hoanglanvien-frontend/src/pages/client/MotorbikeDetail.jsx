@@ -15,7 +15,7 @@ export default function MotorbikeDetail() {
   const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes/${id}`)
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes/${id}/`)
   .then(res => res.json())
       .then(data => { setMotorbike(data); setLoading(false); })
       .catch(err => { console.error(err); setLoading(false); });
@@ -94,7 +94,7 @@ export default function MotorbikeDetail() {
       motorbike_id: motorbike.id, notes: "Khách đặt thuê xe từ Web"
     };
 
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/motorbike-bookings`, {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/motorbike-bookings/`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
   body: JSON.stringify(bookingData)

@@ -10,7 +10,7 @@ export default function DrinkList() {
   const [imageFile, setImageFile] = useState(null);
 
   const fetchDrinks = () => {
-    fetch('${import.meta.env.VITE_API_BASE_URL}/admin/menu-items?type=drink')
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/menu-items?type=drink/`)
       .then(res => res.json())
       .then(data => setDrinks(data))
       .catch(err => console.error("Lỗi lấy dữ liệu:", err));
@@ -31,7 +31,7 @@ export default function DrinkList() {
         data.append('image', imageFile);
       }
 
-      const response = await fetch('${import.meta.env.VITE_API_BASE_URL}/admin/menu-items', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/menu-items/`, {
         method: 'POST',
         headers: { 'Accept': 'application/json' },
         body: data

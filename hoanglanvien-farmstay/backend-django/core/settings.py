@@ -141,3 +141,8 @@ REST_FRAMEWORK = {
 }
 # Cấu hình CORS
 CORS_ALLOW_ALL_ORIGINS = True
+import os
+
+MEDIA_URL = '/media/'
+# Đường dẫn vật lý lưu ảnh trên máy tính
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

@@ -20,7 +20,7 @@ export default function Bungalows() {
   // 2. GỌI API LẤY DỮ LIỆU TỪ LARAVEL
   // ==========================================
   useEffect(() => {
-    fetch('${import.meta.env.VITE_API_BASE_URL}/client/bungalows')
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/bungalows/`)
       .then(res => {
         if (!res.ok) throw new Error(`Lỗi Server: ${res.status}`);
         return res.json();

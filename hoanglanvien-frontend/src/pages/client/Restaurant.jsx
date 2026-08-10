@@ -15,7 +15,7 @@ export default function Restaurant() {
 
   // Lấy dữ liệu từ Database khi Load trang
   useEffect(() => {
-    fetch('${import.meta.env.VITE_API_BASE_URL}/client/menu-items')
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/menu-items/`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {

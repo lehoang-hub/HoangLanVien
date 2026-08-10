@@ -21,7 +21,7 @@ export default function Motorbikes() {
   // ==========================================
   useEffect(() => {
     // Đã xóa dòng fetch bị lặp
-    fetch('${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes')
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes/`)
       .then(res => {
         if (!res.ok) {
           console.error("Lỗi mạng HTTP:", res.status);

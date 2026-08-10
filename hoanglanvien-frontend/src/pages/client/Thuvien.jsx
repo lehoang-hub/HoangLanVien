@@ -6,7 +6,7 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('${import.meta.env.VITE_API_BASE_URL}/client/galleries')
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/galleries/`)
       .then(res => res.json())
       .then(data => {
         setItems(Array.isArray(data) ? data : []);

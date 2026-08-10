@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\MotorbikeController;
 use App\Http\Controllers\Api\UserAuthController;
 use App\Http\Controllers\Api\MotorbikeBookingController;
 
+
 // ==========================================
 // 1. API CLIENT (Khách hàng)
 // ==========================================
@@ -44,7 +45,7 @@ Route::prefix('admin')->group(function () {
     // QUẢN LÝ XE MÁY
     Route::apiResource('motorbikes', MotorbikeController::class);
     Route::post('/motorbikes/{id}/update', [MotorbikeController::class, 'updateWithPost']);
-    
+
     // QUẢN LÝ ĐẶT XE
     Route::get('/motorbike-bookings', [MotorbikeBookingController::class, 'index']);
     Route::post('/motorbike-bookings/{id}/status', [MotorbikeBookingController::class, 'updateStatus']);

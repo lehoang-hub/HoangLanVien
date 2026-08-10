@@ -10,7 +10,7 @@ export default function FoodList() {
   const [imageFile, setImageFile] = useState(null); // State lưu file ảnh
 
   const fetchFoods = () => {
-    fetch('${import.meta.env.VITE_API_BASE_URL}/admin/menu-items?type=food')
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/menu-items?type=food/`)
       .then(res => res.json())
       .then(data => setFoods(data))
       .catch(err => console.error("Lỗi lấy dữ liệu:", err));
@@ -32,7 +32,7 @@ export default function FoodList() {
         data.append('image', imageFile);
       }
 
-      const response = await fetch('${import.meta.env.VITE_API_BASE_URL}/admin/menu-items', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/menu-items/`, {
         method: 'POST',
         headers: { 'Accept': 'application/json' }, // Không để Content-Type khi dùng FormData để trình duyệt tự nhận diện
         body: data

@@ -68,6 +68,7 @@ class Bungalows(models.Model):
     updated_at = models.DateTimeField(blank=True, null=True)
     available_from = models.DateField(blank=True, null=True)
     available_to = models.DateField(blank=True, null=True)
+    
 
     class Meta:
         managed = False

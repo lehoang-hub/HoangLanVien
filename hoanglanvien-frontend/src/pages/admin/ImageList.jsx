@@ -8,7 +8,7 @@ export default function ImageList() {
 
   // Lấy danh sách ảnh từ Database
   const fetchImages = () => {
-    fetch('${import.meta.env.VITE_API_BASE_URL}/admin/galleries?type=image')
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/galleries?type=image/`)
       .then(res => res.json())
       .then(data => setImages(Array.isArray(data) ? data : []))
       .catch(err => console.error("Lỗi tải ảnh:", err));
@@ -27,7 +27,7 @@ export default function ImageList() {
     data.append('file_path', imageFile);
 
     try {
-      const res = await fetch('${import.meta.env.VITE_API_BASE_URL}/admin/galleries', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/galleries/`, {
         method: 'POST',
         headers: { 'Accept': 'application/json' },
         body: data
@@ -52,7 +52,7 @@ export default function ImageList() {
   const handleDelete = async (id) => {
     if (confirm("Bạn có chắc chắn muốn xóa ảnh này không?")) {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/galleries/${id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/galleries/${id}/`, {
           method: 'DELETE',
           headers: { 'Accept': 'application/json' }
         });

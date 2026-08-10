@@ -20,7 +20,7 @@ export default function BungalowDetail() {
   const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/bungalows/${id}`)
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/bungalows/${id}/`)
   .then(res => res.json())
       .then(data => {
         setBungalow(data);
@@ -147,7 +147,7 @@ export default function BungalowDetail() {
       notes: "Khách đặt từ trang chi tiết Bungalow"
     };
 
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/bookings`, {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/bookings/`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
   body: JSON.stringify(bookingData)

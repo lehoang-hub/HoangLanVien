@@ -6,7 +6,7 @@ export default function BookingList() {
 
   // Lấy dữ liệu danh sách đặt phòng
   const fetchBookings = () => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/bookings`)
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/bookings/`)
   .then(res => res.json())
       .then(data => {
         const bookingList = Array.isArray(data) ? data : (data.data || []);
@@ -28,7 +28,7 @@ export default function BookingList() {
   const handleUpdateStatus = (id, newStatus) => {
     if (!window.confirm("Bạn có chắc chắn muốn chuyển trạng thái đơn này?")) return;
 
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/bookings/${id}/status`, {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/bookings/${id}/status/`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',

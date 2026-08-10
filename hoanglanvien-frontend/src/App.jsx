@@ -13,6 +13,7 @@ import Settings from './pages/admin/Settings';
 import MotorbikeList from './pages/admin/MotorbikeList';
 import MotorbikeBookingList from './pages/admin/MotorbikeBookingList';
 import UserAuth from './pages/client/UserAuth';
+import CreateBungalow from './pages/admin/CreateBungalow';
 
 
 // Client Components
@@ -45,6 +46,8 @@ function App() {
           {/* ĐÃ THÊM ROUTE CHO QUẢN LÝ XE MÁY */}
           <Route path="/admin/motorbikes" element={<MotorbikeList />} />
           <Route path="/admin/motorbike-bookings" element={<MotorbikeBookingList />} />
+          {/* Đây là route mà nút "Thêm mới" sẽ dẫn đến */}
+          <Route path="/admin/bungalows/create" element={<CreateBungalow />} />
 
           {/* ĐÃ THÊM ROUTE CHO CRUD ẢNH VÀ VIDEO */}
           <Route path="images" element={<ImageList />} />

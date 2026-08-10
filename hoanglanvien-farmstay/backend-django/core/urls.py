@@ -18,3 +18,4 @@ urlpatterns = [
     path('api/', include('api.urls')),
     path('', RedirectView.as_view(url='api/')),
 ]
+

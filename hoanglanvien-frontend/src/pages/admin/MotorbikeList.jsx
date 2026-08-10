@@ -22,7 +22,7 @@ export default function MotorbikeList() {
   });
 
   const fetchMotorbikes = () => {
-    fetch('${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes')
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes/`)
       .then(res => res.json())
       .then(data => {
         const motorbikeList = Array.isArray(data) ? data : (data.data || data.motorbikes || []);
