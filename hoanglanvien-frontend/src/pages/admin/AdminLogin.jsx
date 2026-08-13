@@ -28,10 +28,10 @@ export default function AdminLogin() {
       const data = await response.json();
 
       if (response.ok && data.access) {
-        // Kiểm tra phân quyền: Chỉ cho phép tài khoản có role khác 'customer' (như admin, receptionist...) vào trang quản trị
-        // Chỉ cho phép tài khoản có cột role chính xác là 'admin' được vào
-        if (data.user.role === 'admin')  {
-          // Lưu trạng thái đăng nhập và token vào bộ nhớ trình duyệt
+        // CẬP NHẬT: Kiểm tra thêm is_superuser của Django (chuẩn bảo mật mới)
+        // Kết hợp với role cũ để tương thích ngược nếu sau này bạn dùng lại bảng Laravel
+        if (data.user?.is_superuser === true || data.user?.role === 'admin')  {
+
           localStorage.setItem('isAdminLoggedIn', 'true'); // Giữ lại cờ xác nhận cũ của bạn[cite: 2]
           localStorage.setItem('adminToken', data.access);
           localStorage.setItem('adminRefreshToken', data.refresh);
@@ -77,10 +77,10 @@ export default function AdminLogin() {
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">
-              Email đăng nhập
+              Tên đăng nhập
             </label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition"

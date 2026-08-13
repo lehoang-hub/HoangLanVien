@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Lịch Sử Đặt Phòng - Mộc Nhiên Farmstay{% endblock %}
+
+{% block content %}
+<h2 style="color: var(--primary); font-size: 26px; margin-bottom: 8px;">Lịch Sử Đặt Phòng Của Bạn</h2>
+<p style="color: var(--text-muted); margin-bottom: 24px;">Theo dõi danh sách các kỳ nghỉ đã đặt và viết đánh giá sau khi hoàn thành chuyến đi</p>
+
+<div style="display: flex; flex-direction: column; gap: 20px;">
+    {% for booking in bookings %}
+    <div class="card" style="padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 16px;">
+            <div>
+                <span style="font-size: 13px; font-weight: 700; color: var(--text-muted);">MÃ ĐƠN:</span>
+                <strong style="font-size: 18px; color: var(--primary); margin-left: 6px;">{{ booking.booking_code }}</strong>
+                <span style="font-size: 12px; color: var(--text-muted); margin-left: 12px;">Ngày tạo: {{ booking.created_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div>
+                {% if booking.payment_status == 'PAID' %}
+                    <span class="badge badge-success" style="font-size: 13px;"><i class="fa-solid fa-check"></i> ĐÃ THANH TOÁN</span>
+                {% elif booking.payment_status == 'PENDING_PAYMENT' %}
+                    <span class="badge badge-warning" style="font-size: 13px;"><i class="fa-solid fa-clock"></i> CHỜ THANH TOÁN</span>
+                {% else %}
+                    <span class="badge badge-danger" style="font-size: 13px;"><i class="fa-solid fa-xmark"></i> ĐÃ HỦY</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px;">
+            <div>
+                <div style="font-size: 13px; color: var(--text-muted);">Phòng nghỉ:</div>
+                <strong style="font-size: 16px; color: var(--text-dark);">{{ booking.room.name }}</strong>
+            </div>
+            <div>
+                <div style="font-size: 13px; color: var(--text-muted);">Thời gian lưu trú:</div>
+                <strong style="font-size: 15px; color: var(--text-dark);">{{ booking.check_in_date|date:"d/m/Y" }} → {{ booking.check_out_date|date:"d/m/Y" }}</strong>
+            </div>
+            <div>
+                <div style="font-size: 13px; color: var(--text-muted);">Tổng thanh toán:</div>
+                <strong style="font-size: 18px; color: var(--primary-light);">{{ booking.total_amount|floatformat:0 }} VNĐ</strong>
+            </div>
+        </div>
+
+        <!-- Additional services -->
+        {% if booking.services_detail.all %}
+        <div style="background: var(--bg-color); padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 16px; font-size: 13px;">
+            <strong style="color: var(--primary);">Dịch vụ đi kèm:</strong>
+            <ul style="margin-top: 4px; padding-left: 20px;">
+                {% for detail in booking.services_detail.all %}
+                    <li>{{ detail.service.name }} (x{{ detail.quantity }}) - {{ detail.subtotal|floatformat:0 }} VNĐ</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center;">
+            {% if booking.payment_status == 'PENDING_PAYMENT' %}
+                <a href="{% url 'payment_page' booking.id %}" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">
+                    <i class="fa-solid fa-credit-card"></i> Thanh Toán Ngay
+                </a>
+            {% elif booking.payment_status == 'PAID' %}
+                {% if booking.review %}
+                    <span style="font-size: 13px; color: #16a34a; font-weight: 600;">
+                        <i class="fa-solid fa-star"></i> Đã gửi đánh giá ({{ booking.review.rating }} sao)
+                    </span>
+                {% else %}
+                    <a href="{% url 'review_create' booking.id %}" class="btn btn-outline" style="padding: 8px 16px; font-size: 14px;">
+                        <i class="fa-regular fa-comment-dots"></i> Viết Đánh Giá
+                    </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div style="text-align: center; padding: 48px; background: white; border-radius: var(--radius-lg);">
+        <i class="fa-solid fa-receipt" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+        <h3>Bạn chưa có đơn đặt phòng nào</h3>
+        <p style="color: var(--text-muted); margin-top: 6px;">Hãy khám phá danh sách phòng nghỉ và lên kế hoạch cho chuyến đi ngay nhé!</p>
+        <a href="{% url 'room_list' %}" class="btn btn-primary" style="margin-top: 16px;">Đặt Phòng Ngay</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,17 +1,37 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // 👉 ĐÃ THÊM: Công cụ điều hướng trang
 
 export default function FoodList() {
+  const navigate = useNavigate(); // Khởi tạo công cụ điều hướng
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [foods, setFoods] = useState([]);
-  
+
   const [formData, setFormData] = useState({
     name: '', category: 'Món chính', price: '', description: ''
   });
-  const [imageFile, setImageFile] = useState(null); // State lưu file ảnh
+  const [imageFile, setImageFile] = useState(null);
 
   const fetchFoods = () => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/menu-items?type=food/`)
-      .then(res => res.json())
+    const token = localStorage.getItem('adminToken');
+    const headers = { 'Accept': 'application/json' };
+
+    if (token && token !== 'null' && token !== 'undefined') {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/menu-items/?type=food`, { headers })
+      .then(res => {
+        // 👉 XỬ LÝ THÔNG MINH: Tự động đăng xuất nếu hết hạn Token
+        if (res.status === 401) {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('isAdminLoggedIn');
+            alert("Phiên đăng nhập đã hết hạn để đảm bảo bảo mật. Vui lòng đăng nhập lại!");
+            navigate('/admin/login');
+            throw new Error("Hết hạn đăng nhập");
+        }
+        if (!res.ok) throw new Error("Lỗi mạng khi tải danh sách");
+        return res.json();
+      })
       .then(data => setFoods(data))
       .catch(err => console.error("Lỗi lấy dữ liệu:", err));
   };
@@ -21,20 +41,31 @@ export default function FoodList() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      // Sử dụng FormData để đính kèm file ảnh lên Server
       const data = new FormData();
       data.append('name', formData.name);
       data.append('category', formData.category);
       data.append('price', formData.price);
       data.append('description', formData.description);
       data.append('type', 'food');
+      // 👉 ĐÃ THÊM: Tự động tạo 'slug' từ tên món ăn
+      const slug = formData.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, '-');
+      data.append('slug', slug);
+
+      // 👉 ĐÃ THÊM: Tự động gắn trạng thái mặc định là 'available'
+      data.append('status', 'available');
       if (imageFile) {
         data.append('image', imageFile);
       }
 
+      const token = localStorage.getItem('adminToken');
+      const headers = { 'Accept': 'application/json' };
+      if (token && token !== 'null' && token !== 'undefined') {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/menu-items/`, {
         method: 'POST',
-        headers: { 'Accept': 'application/json' }, // Không để Content-Type khi dùng FormData để trình duyệt tự nhận diện
+        headers: headers,
         body: data
       });
 
@@ -44,9 +75,15 @@ export default function FoodList() {
         setFormData({ name: '', category: 'Món chính', price: '', description: '' });
         setImageFile(null);
         fetchFoods();
+      } else if (response.status === 401) {
+        // 👉 Tự động đá ra trang login nếu đang lưu mà bị hết hạn
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('isAdminLoggedIn');
+        alert("Phiên đăng nhập hết hạn! Vui lòng đăng nhập lại để lưu dữ liệu.");
+        navigate('/admin/login');
       } else {
         const errorData = await response.json();
-        alert("Lỗi: " + (errorData.message || "Vui lòng kiểm tra lại dữ liệu!"));
+        alert("Lỗi: " + (errorData.message || JSON.stringify(errorData)));
       }
     } catch (error) {
       alert("Lỗi kết nối Server!");
@@ -61,7 +98,7 @@ export default function FoodList() {
           + Thêm món ăn mới
         </button>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-100 text-gray-600 font-semibold text-sm">
@@ -73,21 +110,27 @@ export default function FoodList() {
             </tr>
           </thead>
           <tbody>
-            {foods.map(item => (
-              <tr key={item.id} className="border-t hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  {item.image ? (
-                    <img src={`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${item.image}`} alt={item.name} className="w-12 h-12 object-cover rounded" />
-                  ) : (
-                    <span className="text-xs text-gray-400">Không có</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 font-bold text-gray-800">{item.name}</td>
-                <td className="px-6 py-4 text-gray-600">{item.category}</td>
-                <td className="px-6 py-4 font-bold text-red-600">{Number(item.price).toLocaleString()} đ</td>
-              </tr>
-            ))}
-            {foods.length === 0 && (
+            {foods.length > 0 ? (
+              foods.map(item => (
+                <tr key={item.id} className="border-t hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    {item.image ? (
+                      <img
+                      src={item.image.startsWith('http') ? item.image : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '')}${item.image.startsWith('/') ? item.image : `/${item.image}`}`}
+                      alt={item.name}
+                      className="w-12 h-12 object-cover rounded shadow-sm"
+                      onError={(e) => { e.target.src = 'https://placehold.co/100x100?text=Loi+Anh'; }}
+                      />
+                    ) : (
+                      <span className="text-xs text-gray-400">Không có</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 font-bold text-gray-800">{item.name}</td>
+                  <td className="px-6 py-4 text-gray-600">{item.category}</td>
+                  <td className="px-6 py-4 font-bold text-red-600">{Number(item.price).toLocaleString()} đ</td>
+                </tr>
+              ))
+            ) : (
               <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500">Chưa có đồ ăn nào. Hãy thêm mới!</td></tr>
             )}
           </tbody>

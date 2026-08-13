@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Đánh Giá Chuyến Đi - Mộc Nhiên Farmstay{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div class="card" style="padding: 32px;">
+        <h2 style="color: var(--primary); font-size: 24px; margin-bottom: 8px;">Đánh Giá Kỳ Nghỉ</h2>
+        <p style="color: var(--text-muted); margin-bottom: 24px;">Phòng: <strong>{{ booking.room.name }}</strong> (Mã đơn: {{ booking.booking_code }})</p>
+
+        <form action="{% url 'review_create' booking.id %}" method="POST">
+            {% csrf_token %}
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 14px; font-weight: 700; display: block; margin-bottom: 8px;">Mức Độ Hài Lòng (Số sao)</label>
+                <select name="rating" class="form-control" style="width: 100%; padding: 10px; font-size: 15px;">
+                    <option value="5">★★★★★ - Rất Tuyệt Vời (5/5)</option>
+                    <option value="4">★★★★☆ - Hài Lòng (4/5)</option>
+                    <option value="3">★★★☆☆ - Bình Thường (3/5)</option>
+                    <option value="2">★★☆☆☆ - Cần Cải Thiện (2/5)</option>
+                    <option value="1">★☆☆☆☆ - Không Hài Lòng (1/5)</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label style="font-size: 14px; font-weight: 700; display: block; margin-bottom: 8px;">Nội Dung Đánh Giá</label>
+                <textarea name="comment" rows="5" required class="form-control" style="width: 100%;" placeholder="Hãy chia sẻ trải nghiệm về phòng nghỉ, dịch vụ ăn uống và thái độ phục vụ tại Farmstay..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; height: 46px;">
+                <i class="fa-solid fa-paper-plane"></i> Gửi Đánh Giá
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

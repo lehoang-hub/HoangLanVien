@@ -87,34 +87,40 @@ export default function Motorbikes() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {currentMotorbikes.map((motorbike) => {
-              
-              // ĐÃ SỬA: Logic tự động bóc tách mảng nhiều ảnh
-              let imageUrl = null;
-              try {
-                const imageList = typeof motorbike.images === 'string' ? JSON.parse(motorbike.images) : (motorbike.images || []);
-                if (imageList.length > 0) {
-                  imageUrl = `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${imageList[0].url || imageList[0]}`;
-                }
-              } catch (e) {}
+        {motorbikes.map((motorbike) => {
 
-              return (
-                <div key={motorbike.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col">
-                  <div className="relative h-56 overflow-hidden bg-gray-200">
-                    
-                    {imageUrl ? (
-                      <img 
-                          src={imageUrl} 
-                          alt={motorbike.name} 
-                          className="w-full h-48 object-cover rounded-t-lg" 
-                      />
-                    ) : (
-                      <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400 italic">
-                          Chưa có ảnh
-                      </div>
-                    )}
-                    
-                    {/* ĐÃ SỬA: Hiển thị Biển số thay vì Sức chứa */}
+                const getActualImage = (bikeData) => {
+                    let source = bikeData.image || bikeData.thumbnail || bikeData.photo;
+                    if (!source && bikeData.images) {
+                        try {
+                            const parsed = typeof bikeData.images === 'string' ? JSON.parse(bikeData.images) : bikeData.images;
+                            if (Array.isArray(parsed) && parsed.length > 0) source = parsed[0];
+                        } catch (e) {}
+                    }
+                    if (!source) return null;
+                    let imgPath = typeof source === 'object' ? (source.url || source.image || source.file) : source;
+                    if (!imgPath || typeof imgPath !== 'string') return null;
+                    if (imgPath.startsWith('http')) return imgPath;
+                    const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '');
+                    return `${baseUrl}${imgPath.startsWith('/') ? imgPath : `/${imgPath}`}`;
+                };
+
+                // Đổi thành motorbike
+                const actualImage = getActualImage(motorbike);
+
+                return (
+                    <div key={motorbike.id} className="..."> {/* Thẻ bọc ngoài giữ nguyên của bạn */}
+                        <div className="relative h-56 overflow-hidden bg-gray-200 flex items-center justify-center">
+                            {actualImage ? (
+                            <img
+                                src={actualImage}
+                                alt={motorbike.name}
+                                className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                                onError={(e) => { e.target.src = 'https://placehold.co/600x400?text=Loi+Anh'; }}
+                            />
+                            ) : (
+                            <span className="text-gray-400 font-medium italic text-sm">Chưa có ảnh</span>
+                            )}
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-green-700 shadow">
                       🛵 {motorbike.license_plate || 'Đang cập nhật'}
                     </div>

@@ -49,6 +49,7 @@ export default function UserAuth() {
   headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
   body: JSON.stringify({
     email: formData.email,
+    phone: formData.phone,
     password: formData.password
   })
 });
@@ -88,6 +89,7 @@ export default function UserAuth() {
   body: JSON.stringify({
     name: formData.name,
     email: formData.email,
+    phone: formData.phone,
     password: formData.password
   })
 });

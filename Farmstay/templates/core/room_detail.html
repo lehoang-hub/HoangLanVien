@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ room.name }} - Mộc Nhiên Farmstay{% endblock %}
+
+{% block extra_css %}
+<style>
+    .room-detail-container {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 36px;
+    }
+
+    .room-header-img {
+        width: 100%;
+        height: 380px;
+        object-fit: cover;
+        border-radius: var(--radius-lg);
+        margin-bottom: 24px;
+    }
+
+    .booking-sidebar {
+        background: white;
+        padding: 28px;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border);
+        height: fit-content;
+        position: sticky;
+        top: 90px;
+    }
+
+    .service-selection-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 20px 0 12px;
+        color: var(--primary);
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 6px;
+    }
+
+    .service-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px dashed #eee;
+    }
+
+    .service-item:last-child {
+        border-bottom: none;
+    }
+
+    .qty-input {
+        width: 60px;
+        padding: 4px 8px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        text-align: center;
+    }
+
+    .reviews-section {
+        margin-top: 40px;
+    }
+
+    @media (max-width: 850px) {
+        .room-detail-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="room-detail-container">
+        <!-- Left: Room Information & Services Options -->
+        <div>
+            <img src="{{ room.image_url|default:'https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=800&q=80' }}" alt="{{ room.name }}" class="room-header-img">
+            
+            <span class="badge badge-success" style="margin-bottom: 10px;">{{ room.get_room_type_display }}</span>
+            <h1 style="font-size: 32px; color: var(--primary); font-weight: 700; margin-bottom: 12px;">{{ room.name }}</h1>
+            
+            <div style="display: flex; gap: 24px; color: var(--text-muted); font-size: 15px; margin-bottom: 20px;">
+                <span><i class="fa-solid fa-user-group"></i> Tối đa {{ room.capacity }} người</span>
+                <span><i class="fa-solid fa-square-check"></i> Trạng thái: {{ room.get_status_display }}</span>
+            </div>
+
+            <h3 style="font-size: 20px; color: var(--primary); margin-bottom: 10px;">Mô tả phòng</h3>
+            <p style="color: var(--text-dark); line-height: 1.8; margin-bottom: 32px;">{{ room.description }}</p>
+
+            <!-- Reviews list for this room -->
+            <div class="reviews-section">
+                <h3 style="font-size: 20px; color: var(--primary); margin-bottom: 16px;">
+                    <i class="fa-regular fa-comments"></i> Đánh giá từ khách hàng
+                </h3>
+                {% for review in reviews %}
+                <div style="background: white; padding: 16px 20px; border-radius: var(--radius-md); margin-bottom: 12px; border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <strong>{{ review.user.username }}</strong>
+                        <span style="color: #f59e0b;">
+                            {% for i in "12345"|make_list %}
+                                {% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}
+                            {% endfor %}
+                        </span>
+                    </div>
+                    <p style="font-size: 14px; color: var(--text-dark);">{{ review.comment }}</p>
+                </div>
+                {% empty %}
+                <p style="color: var(--text-muted); font-style: italic;">Chưa có đánh giá nào cho phòng này.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Right Sidebar: Booking Form -->
+        <div class="booking-sidebar">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+                <span style="font-size: 26px; font-weight: 700; color: var(--primary);">{{ room.price|floatformat:0 }} VNĐ</span>
+                <span style="color: var(--text-muted); font-size: 14px;">/ đêm</span>
+            </div>
+
+            <form action="{% url 'booking_create' room.id %}" method="POST">
+                {% csrf_token %}
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">Ngày Nhận Phòng</label>
+                    <input type="date" name="check_in" value="{{ request.GET.check_in }}" required class="form-control" style="width: 100%;">
+                </div>
+                
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">Ngày Trả Phòng</label>
+                    <input type="date" name="check_out" value="{{ request.GET.check_out }}" required class="form-control" style="width: 100%;">
+                </div>
+
+                <!-- Food / Drink Service Pre-order -->
+                <div class="service-selection-title">
+                    <i class="fa-solid fa-utensils"></i> Đặt trước Menu Ăn / Uống
+                </div>
+                {% for service in food_services %}
+                <div class="service-item">
+                    <div>
+                        <input type="checkbox" name="services" value="{{ service.id }}" id="service_{{ service.id }}">
+                        <label for="service_{{ service.id }}" style="font-size: 13px; font-weight: 600; cursor: pointer;">{{ service.name }}</label>
+                        <div style="font-size: 12px; color: var(--text-muted);">{{ service.price|floatformat:0 }} VNĐ/{{ service.unit }}</div>
+                    </div>
+                    <input type="number" name="qty_{{ service.id }}" value="1" min="1" class="qty-input">
+                </div>
+                {% endfor %}
+
+                <!-- Motorbike Rental -->
+                <div class="service-selection-title">
+                    <i class="fa-solid fa-motorcycle"></i> Thuê Xe Máy Khám Phá
+                </div>
+                {% for service in motorbike_services %}
+                <div class="service-item">
+                    <div>
+                        <input type="checkbox" name="services" value="{{ service.id }}" id="service_{{ service.id }}">
+                        <label for="service_{{ service.id }}" style="font-size: 13px; font-weight: 600; cursor: pointer;">{{ service.name }}</label>
+                        <div style="font-size: 12px; color: var(--text-muted);">{{ service.price|floatformat:0 }} VNĐ/{{ service.unit }}</div>
+                    </div>
+                    <input type="number" name="qty_{{ service.id }}" value="1" min="1" class="qty-input">
+                </div>
+                {% endfor %}
+
+                <div style="margin: 16px 0;">
+                    <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">Ghi Chú Cho Farmstay</label>
+                    <textarea name="note" rows="2" class="form-control" style="width: 100%;" placeholder="Ví dụ: Giờ đến dự kiến, yêu cầu ăn kiêng..."></textarea>
+                </div>
+
+                {% if user.is_authenticated %}
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; height: 46px; font-size: 16px;">
+                        <i class="fa-solid fa-bolt"></i> Tiến Hành Đặt Phòng
+                    </button>
+                {% else %}
+                    <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-accent" style="width: 100%; justify-content: center; height: 46px;">
+                        Đăng Nhập Để Đặt Phòng
+                    </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+{% endblock %}

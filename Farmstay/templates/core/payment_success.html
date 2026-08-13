@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Thanh Toán Thành Công - Mộc Nhiên Farmstay{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 40px auto; text-align: center;">
+    <div class="card" style="padding: 40px;">
+        <div style="width: 70px; height: 70px; background: #d8f3dc; color: #1b4332; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 20px;">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        
+        <h2 style="color: var(--primary); font-size: 28px; margin-bottom: 8px;">Thanh Toán Thành Công!</h2>
+        <p style="color: var(--text-muted); margin-bottom: 24px;">Đơn đặt phòng <strong>{{ booking.booking_code }}</strong> đã được hệ thống ghi nhận thành công.</p>
+
+        <div style="background: var(--bg-color); padding: 20px; border-radius: var(--radius-md); text-align: left; margin-bottom: 28px;">
+            <div style="margin-bottom: 8px;"><strong>Phòng:</strong> {{ booking.room.name }}</div>
+            <div style="margin-bottom: 8px;"><strong>Thời gian:</strong> {{ booking.check_in_date|date:"d/m/Y" }} → {{ booking.check_out_date|date:"d/m/Y" }}</div>
+            <div style="margin-bottom: 8px;"><strong>Số tiền:</strong> {{ booking.total_amount|floatformat:0 }} VNĐ</div>
+            <div><strong>Email xác nhận:</strong> {{ booking.user.email }}</div>
+        </div>
+
+        <div style="display: flex; gap: 14px; justify-content: center;">
+            <a href="{% url 'booking_history' %}" class="btn btn-primary">Xem Lịch Sử Đặt Phòng</a>
+            <a href="{% url 'index' %}" class="btn btn-outline">Trở Về Trang Chủ</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -4,69 +4,101 @@ export default function ImageList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [images, setImages] = useState([]);
   const [title, setTitle] = useState('');
-  const [imageFile, setImageFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
 
-  // Lấy danh sách ảnh từ Database
   const fetchImages = () => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/galleries?type=image/`)
-      .then(res => res.json())
-      .then(data => setImages(Array.isArray(data) ? data : []))
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/galleries/?type=image`)
+      .then(res => {
+        if (!res.ok) throw new Error("API Not Found");
+        return res.json();
+      })
+     .then(data => {
+        const allItems = Array.isArray(data) ? data : (data.results || []);
+        const imageOnly = allItems.filter(item => item.type === 'image');
+        setImages(imageOnly);
+      })
       .catch(err => console.error("Lỗi tải ảnh:", err));
   };
 
   useEffect(() => { fetchImages(); }, []);
 
-  // Thêm mới hình ảnh
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!imageFile) return alert("Vui lòng chọn file ảnh!");
+    if (imageFiles.length === 0) return alert("Vui lòng chọn ít nhất 1 file ảnh!");
 
-    const data = new FormData();
-    data.append('type', 'image');
-    data.append('title', title);
-    data.append('file_path', imageFile);
+    const token = localStorage.getItem('adminToken');
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/galleries/`, {
-        method: 'POST',
-        headers: { 'Accept': 'application/json' },
-        body: data
+      const uploadPromises = imageFiles.map(async (file) => {
+        const data = new FormData();
+        data.append('type', 'image');
+        data.append('title', title || file.name);
+
+        // 🟢 CHIẾN THUẬT GỬI RẢI THẢM: Bao trọn mọi trường hợp tên cột trong Django
+        data.append('file_path', file);
+        data.append('image', file);
+        data.append('file', file);
+        data.append('photo', file);
+
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/galleries/`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: data
+        });
+
+        if (!response.ok) throw new Error("Lỗi khi lưu vào Server");
+        return response;
       });
 
-      if (res.ok) {
-        alert("Upload ảnh thành công!");
-        setIsModalOpen(false);
-        setTitle('');
-        setImageFile(null);
-        fetchImages();
-      } else {
-        const errData = await res.json();
-        alert("Lỗi: " + (errData.message || "Không thể upload ảnh!"));
-      }
+      await Promise.all(uploadPromises);
+
+      alert(`Đã upload thành công ${imageFiles.length} ảnh!`);
+      setIsModalOpen(false);
+      setTitle('');
+      setImageFiles([]);
+      fetchImages();
+
     } catch (error) {
-      alert("Lỗi kết nối Server!");
+      alert("Lỗi: Server từ chối lưu ảnh. Vui lòng kiểm tra lại đường dẫn API hoặc tên biến trong Django!");
     }
   };
 
-  // Xóa hình ảnh
   const handleDelete = async (id) => {
     if (confirm("Bạn có chắc chắn muốn xóa ảnh này không?")) {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/galleries/${id}/`, {
+        const token = localStorage.getItem('adminToken');
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/galleries/${id}/`, {
           method: 'DELETE',
-          headers: { 'Accept': 'application/json' }
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          }
         });
 
         if (res.ok) {
           alert("Xóa ảnh thành công!");
           fetchImages();
-        } else {
-          alert("Không thể xóa ảnh!");
-        }
-      } catch (error) {
-        alert("Lỗi kết nối Server!");
-      }
+        } else alert("Không thể xóa ảnh!");
+      } catch (error) { alert("Lỗi kết nối Server!"); }
     }
+  };
+
+  const getImageUrl = (path) => {
+    if (!path) return 'https://placehold.co/600x400?text=Loi+Anh';
+    let urlStr = typeof path === 'object' ? (path.file_path || path.image || path.file || path.url) : path;
+    if (typeof urlStr !== 'string' || !urlStr) return 'https://placehold.co/600x400?text=Loi+Anh';
+
+    if (urlStr.startsWith('http')) return urlStr;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '');
+    if (!urlStr.includes('media/')) {
+      urlStr = `/media/${urlStr.startsWith('/') ? urlStr.slice(1) : urlStr}`;
+    } else {
+      urlStr = urlStr.startsWith('/') ? urlStr : `/${urlStr}`;
+    }
+    return `${baseUrl}${urlStr}`;
   };
 
   return (
@@ -77,19 +109,16 @@ export default function ImageList() {
           + Tải ảnh mới lên
         </button>
       </div>
-      
-      {/* Lưới hiển thị danh sách ảnh */}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {images.map(img => (
           <div key={img.id} className="bg-white rounded-xl shadow overflow-hidden border border-gray-100 flex flex-col">
             <div className="h-40 bg-gray-200">
-              <img src={`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${img.file_path}`} alt={img.title} className="w-full h-full object-cover" />
+              <img src={getImageUrl(img.file_path || img.image || img.file || img.photo)} alt={img.title} className="w-full h-full object-cover" />
             </div>
             <div className="p-3 flex-1 flex flex-col justify-between">
               <p className="text-sm font-semibold text-gray-800 truncate">{img.title || "Không có tiêu đề"}</p>
-              <button onClick={() => handleDelete(img.id)} className="mt-3 text-xs text-red-600 font-bold hover:underline text-left">
-                🗑️ Xóa ảnh
-              </button>
+              <button onClick={() => handleDelete(img.id)} className="mt-3 text-xs text-red-600 font-bold hover:underline text-left">🗑️ Xóa ảnh</button>
             </div>
           </div>
         ))}
@@ -98,38 +127,30 @@ export default function ImageList() {
         <div className="bg-white rounded-xl shadow p-8 text-center text-gray-500">Chưa có hình ảnh nào trong hệ thống.</div>
       )}
 
-      {/* MODAL UPLOAD ẢNH */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Tải ảnh mới</h2>
+              <h2 className="text-xl font-bold text-gray-800">Tải ảnh mới (Nhiều file)</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-red-500 text-2xl leading-none">&times;</button>
             </div>
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Chọn file ảnh (jpg, png) <span className="text-red-500">*</span></label>
-                <input 
-                  type="file" 
-                  accept="image/png, image/jpeg" 
-                  required 
-                  onChange={(e) => setImageFile(e.target.files[0])} 
-                  className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-50 text-sm file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                <label className="block text-sm font-medium text-gray-700 mb-1">Chọn file ảnh <span className="text-red-500">*</span></label>
+                <input
+                  type="file" multiple accept="image/png, image/jpeg, image/webp" required
+                  onChange={(e) => setImageFiles(Array.from(e.target.files))}
+                  className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-50 text-sm file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700"
                 />
+                {imageFiles.length > 0 && <p className="text-xs text-green-600 mt-2 font-bold">Đã chọn: {imageFiles.length} file</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề / Mô tả ảnh</label>
-                <input 
-                  type="text" 
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value)} 
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:outline-none" 
-                  placeholder="VD: Khách hàng check-in đồi chè" 
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề (Chung cho các ảnh)</label>
+                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2" placeholder="Để trống sẽ tự lấy tên file gốc" />
               </div>
               <div className="flex justify-end gap-3 mt-6 border-t pt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 font-medium">Hủy</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold">Upload ảnh</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded font-medium">Hủy</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded font-bold">Upload tất cả</button>
               </div>
             </form>
           </div>

@@ -67,10 +67,9 @@ export default function BungalowList() {
 
   // 3. Chức năng Sửa
   const handleEdit = (id) => {
-    // Thông thường Admin sẽ chuyển sang trang edit dạng /admin/bungalows/edit/1
     console.log("Điều hướng sang trang sửa phòng ID:", id);
-    // navigate(`/admin/bungalows/edit/${id}`); // Ví dụ điều hướng
-    alert(`Chức năng sửa phòng ID ${id} (Cần tạo Page sửa tương tự như Page thêm).`);
+    // Kích hoạt chuyển hướng đến trang Form dùng chung (Upsert Form)
+    navigate(`/admin/bungalows/edit/${id}`);
   };
 
   // 4. CHỨC NĂNG THÊM MỚI - ĐÃ VIẾT ACTION (ĐÃ SỬA Ở ĐÂY)
@@ -118,7 +117,7 @@ export default function BungalowList() {
                 <th scope="col" className="px-6 py-4">Tên phòng</th>
                 <th scope="col" className="px-6 py-4">Giá (VND)</th>
                 <th scope="col" className="px-6 py-4">Sức chứa</th>
-                <th scope="col" className="px-6 py-4">Kiểu giường</th>
+                <th scope="col" className="px-6 py-4">Trạng thái</th>
                 <th scope="col" className="px-6 py-4 text-center">Hành động</th>
               </tr>
             </thead>
@@ -130,44 +129,70 @@ export default function BungalowList() {
                   </td>
                 </tr>
               ) : (
-                bungalows.map((room) => (
-                  <tr key={room.id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-gray-500">{room.id}</td>
-                    <td className="px-6 py-4">
-                      <img
-                        src={room.image || "https://images.unsplash.com/photo-1587061949409-02df41d5e562?q=80&w=200&auto=format&fit=crop"}
-                        alt={room.name}
-                        className="w-16 h-12 object-cover rounded-md border border-gray-200"
-                      />
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900">{room.name}</td>
-                    <td className="px-6 py-4 text-green-700 font-semibold">
-                      {new Intl.NumberFormat('vi-VN').format(room.price || 0)}
-                    </td>
-                    <td className="px-6 py-4">{room.capacity || 2} khách</td>
-                    <td className="px-6 py-4">{room.bed_type || 'Giường đôi'}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        {/* === NÚT SỬA (CRUD - U) === */}
-                        <button
-                          onClick={() => handleEdit(room.id)}
-                          className="text-blue-600 hover:text-blue-800 font-medium py-1 px-3 rounded border border-blue-200 hover:border-blue-300 bg-blue-50 transition-colors"
-                        >
-                          Sửa
-                        </button>
+                bungalows.map((room) => {
+                  // Bộ quét ảnh thông minh
+                  const getImageUrl = (imageSource) => {
+                    if (!imageSource) return null;
+                    let imgPath = typeof imageSource === 'object' ? (imageSource.url || imageSource.image) : imageSource;
+                    if (!imgPath) return null;
+                    if (imgPath.startsWith('http')) return imgPath;
+                    const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '');
+                    const safePath = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
+                    return `${baseUrl}${safePath}`;
+                  };
 
-                        {/* === NÚT XÓA (CRUD - D) === */}
-                        <button
-                          onClick={() => handleDelete(room.id, room.name)}
-                          disabled={isDeleting === room.id}
-                          className="text-red-600 hover:text-red-800 font-medium py-1 px-3 rounded border border-red-200 hover:border-red-300 bg-red-50 transition-colors disabled:opacity-50"
-                        >
-                          {isDeleting === room.id ? 'Đang xóa...' : 'Xóa'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                  const actualImage = getImageUrl(room.image || (room.images && room.images.length > 0 ? room.images[0] : null));
+
+                  return (
+                    <tr key={room.id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors text-left">
+                      <td className="px-6 py-4 font-mono text-gray-500">{room.id}</td>
+                      <td className="px-6 py-4">
+                        {actualImage ? (
+                          <img
+                            src={actualImage}
+                            alt={room.name}
+                            className="w-16 h-12 object-cover rounded-md border border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-16 h-12 bg-gray-100 rounded-md border border-dashed flex items-center justify-center text-[10px] text-gray-500 px-1 text-center">
+                            Chưa có ảnh
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-900">{room.name}</td>
+                      {/* ĐÃ SỬA: Lấy chính xác base_price từ form thêm mới */}
+                      <td className="px-6 py-4 text-red-600 font-semibold">
+                        {new Intl.NumberFormat('vi-VN').format(room.base_price || 0)} đ
+                      </td>
+                      <td className="px-6 py-4">
+                        Tiêu chuẩn: {room.capacity || 2} | Tối đa: {room.max_capacity || 'N/A'}
+                      </td>
+                      {/* ĐÃ SỬA: Thay cột Kiểu giường cũ bằng Trạng thái thực tế */}
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${room.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                          {room.status === 'available' ? 'Sẵn sàng' : room.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEdit(room.id)}
+                            className="text-blue-600 hover:text-blue-800 font-medium py-1 px-3 rounded border border-blue-200 hover:border-blue-300 bg-blue-50 transition-colors"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => handleDelete(room.id, room.name)}
+                            disabled={isDeleting === room.id}
+                            className="text-red-600 hover:text-red-800 font-medium py-1 px-3 rounded border border-red-200 hover:border-red-300 bg-red-50 transition-colors disabled:opacity-50"
+                          >
+                            {isDeleting === room.id ? 'Đang xóa...' : 'Xóa'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

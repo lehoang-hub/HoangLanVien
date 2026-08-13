@@ -15,7 +15,7 @@ export default function Restaurant() {
 
   // Lấy dữ liệu từ Database khi Load trang
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/menu-items/`)
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/menu-items/`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -54,51 +54,107 @@ export default function Restaurant() {
   const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
   const getTotalPrice = () => cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
-  const handlePlaceOrder = (e) => {
+  const handlePlaceOrder = async (e) => {
     e.preventDefault();
     if (cart.length === 0) return alert("Giỏ hàng của bạn đang trống!");
     if (!bungalowNumber.trim()) return alert("Vui lòng nhập số/tên Bungalow!");
-    
-    alert(`ĐẶT MÓN THÀNH CÔNG!\nNhân viên sẽ mang món đến ${bungalowNumber} trong thời gian sớm nhất.\nTổng thanh toán: ${getTotalPrice().toLocaleString()} đ`);
-    
-    setCart([]);
-    setIsCartOpen(false);
-    setBungalowNumber('');
-    setNote('');
+
+    // 1. Tự động tạo mã đơn hàng ngẫu nhiên (VD: ORD-110826-1234)
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const random4Digits = Math.floor(1000 + Math.random() * 9000);
+    const orderCode = `ORD-${dd}${mm}${yy}-${random4Digits}`;
+
+    // 2. Rút gọn mảng giỏ hàng để lưu vào JSONField
+    const orderItems = cart.map(item => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: Number(item.price)
+    }));
+
+    // 3. Đóng gói payload gửi lên Server
+    const payload = {
+        order_code: orderCode,
+        customer_name: "Khách Đặt Tại Phòng",
+        room_number: bungalowNumber,
+        total_price: getTotalPrice(),
+        notes: note,
+        status: "pending",
+        items: orderItems
+    };
+
+    try {
+        // Gửi API không cần Token (Vì khách hàng vãng lai cũng có quyền đặt món)
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/food-orders/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            alert(`ĐẶT MÓN THÀNH CÔNG!\nMã đơn: ${orderCode}\nNhân viên sẽ mang món đến phòng ${bungalowNumber} trong thời gian sớm nhất.`);
+
+            // Xóa sạch giỏ hàng và đóng Modal
+            setCart([]);
+            setIsCartOpen(false);
+            setBungalowNumber('');
+            setNote('');
+        } else {
+            const errorData = await response.json();
+            alert("Lỗi khi đặt món: " + JSON.stringify(errorData));
+        }
+    } catch (error) {
+        console.error("Lỗi gửi đơn hàng:", error);
+        alert("Lỗi kết nối đến máy chủ. Vui lòng thử lại!");
+    }
   };
 
   // Component hiển thị Item chung
-  const MenuItem = ({ item }) => (
-    <div className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden border border-gray-100 flex flex-col">
-      <div className="h-48 overflow-hidden relative bg-gray-200 flex items-center justify-center">
-        {/* Kiểm tra nếu có link ảnh thì hiển thị ảnh, ngược lại hiển thị dòng chữ Không có ảnh */}
-        {item.image ? (
-          <img 
-            src={`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${item.image}`}
-            alt={item.name} 
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" 
-          />
-        ) : (
-          <span className="text-gray-400 font-medium italic text-sm">Không có ảnh</span>
-        )}
-        
-        <div className="absolute top-3 right-3 bg-white/90 px-3 py-1 rounded-full font-bold text-red-600 shadow">
-          {Number(item.price).toLocaleString()} đ
+  const MenuItem = ({ item }) => {
+    // Bộ quét URL thông minh chống lỗi ghép link
+    const actualImage = item.image
+      ? (item.image.startsWith('http')
+          ? item.image
+          : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '')}${item.image.startsWith('/') ? item.image : `/${item.image}`}`)
+      : null;
+
+    return (
+      <div className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden border border-gray-100 flex flex-col">
+        <div className="h-48 overflow-hidden relative bg-gray-200 flex items-center justify-center">
+          {actualImage ? (
+            <img
+              src={actualImage}
+              alt={item.name}
+              className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+              onError={(e) => { e.target.src = 'https://placehold.co/600x400?text=Loi+Anh'; }}
+            />
+          ) : (
+            <span className="text-gray-400 font-medium italic text-sm">Không có ảnh</span>
+          )}
+
+          <div className="absolute top-3 right-3 bg-white/90 px-3 py-1 rounded-full font-bold text-red-600 shadow">
+            {Number(item.price).toLocaleString()} đ
+          </div>
+        </div>
+        <div className="p-5 flex-1 flex flex-col">
+          <h3 className="text-lg font-bold text-gray-800">{item.name}</h3>
+          {item.description && <p className="text-sm text-gray-600 mt-2 flex-1">{item.description}</p>}
+          <button
+            onClick={() => addToCart(item)}
+            className="mt-4 w-full bg-green-50 text-green-700 hover:bg-green-600 hover:text-white border border-green-200 font-semibold py-2 rounded-lg transition"
+          >
+            + Thêm vào giỏ
+          </button>
         </div>
       </div>
-      <div className="p-5 flex-1 flex flex-col">
-        <h3 className="text-lg font-bold text-gray-800">{item.name}</h3>
-        {item.description && <p className="text-sm text-gray-600 mt-2 flex-1">{item.description}</p>}
-        <button 
-          onClick={() => addToCart(item)}
-          className="mt-4 w-full bg-green-50 text-green-700 hover:bg-green-600 hover:text-white border border-green-200 font-semibold py-2 rounded-lg transition"
-        >
-          + Thêm vào giỏ
-        </button>
-      </div>
-    </div>
-  );
-
+    );
+  };
   if (loading) return <div className="text-center py-32 text-xl font-bold text-orange-700">Đang tải thực đơn...</div>;
 
   return (

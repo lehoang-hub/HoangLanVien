@@ -25,6 +25,16 @@ export default function AdminLayout() {
                     <Link to="/admin" className="block px-4 py-2 rounded hover:bg-slate-700 transition">
                         📊 Tổng quan (Dashboard)
                     </Link>
+                    <Link
+  to="/admin/introductions"
+  className="flex items-center gap-3 px-4 py-3 block px-4 py-2 rounded hover:bg-slate-700 transition"
+>
+  {/* Icon cây bút tượng trưng cho việc viết bài */}
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+  Lời giới thiệu
+</Link>
                     <Link to="/admin/bungalows" className="block px-4 py-2 rounded hover:bg-slate-700 transition">
                         🏡 Quản lý Phòng
                     </Link>
@@ -50,6 +60,10 @@ export default function AdminLayout() {
                         </button>
                         {isMenuOpen && (
                             <div className="mt-1 bg-slate-900 rounded py-2 space-y-1">
+                                {/* 👉 BỔ SUNG THÊM DÒNG NÀY: */}
+                                <Link to="/admin/menu/orders" className="block px-10 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700 transition font-bold text-orange-400">
+                                    🛎️ Đơn đặt món
+                                </Link>
                                 <Link to="/admin/menu/food" className="block px-10 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700 transition">
                                     🍔 Quản lý Đồ ăn
                                 </Link>

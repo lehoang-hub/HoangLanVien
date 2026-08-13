@@ -6,6 +6,8 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,)
 # 👉 Import API đăng nhập mới
 from api.views import CustomLoginView, CustomRegisterView
+from django.conf import settings # Thêm dòng này
+from django.conf.urls.static import static # Thêm dòng này
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -18,4 +20,5 @@ urlpatterns = [
     path('api/', include('api.urls')),
     path('', RedirectView.as_view(url='api/')),
 ]
-
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

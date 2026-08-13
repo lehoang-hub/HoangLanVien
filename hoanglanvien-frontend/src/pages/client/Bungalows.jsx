@@ -20,7 +20,7 @@ export default function Bungalows() {
   // 2. GỌI API LẤY DỮ LIỆU TỪ LARAVEL
   // ==========================================
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/bungalows/`)
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/bungalows/`)
       .then(res => {
         if (!res.ok) throw new Error(`Lỗi Server: ${res.status}`);
         return res.json();
@@ -93,10 +93,11 @@ export default function Bungalows() {
                 <div className="relative h-56 overflow-hidden bg-gray-200">
                   {/* Dùng ảnh mặc định nếu API chưa có link ảnh */}
                   {room.image ? (
-                    <img 
-                        src={`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${room.image}`}
-                        alt={room.name} 
-                        className="w-full h-48 object-cover rounded-t-lg" 
+                    <img
+                      src={room.image.startsWith('http') ? room.image : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '')}${room.image.startsWith('/') ? room.image : `/${room.image}`}`}
+                      alt={room.name}
+                      className="w-full h-48 object-cover rounded-t-lg"
+                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1587061949409-02df41d5e562?q=80&w=600&auto=format&fit=crop'; }}
                     />
                 ) : (
                     <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400 italic">

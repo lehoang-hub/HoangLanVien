@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Thanh Toán Đơn Đặt Phòng - {{ booking.booking_code }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 700px; margin: 0 auto;">
+    <div class="card" style="padding: 32px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <span class="badge badge-warning" style="font-size: 14px; padding: 6px 16px;">ĐƠN HÀNG CHỜ THANH TOÁN</span>
+            <h2 style="font-size: 26px; color: var(--primary); margin-top: 10px;">Xác Nhận & Thanh Toán</h2>
+            <p style="color: var(--text-muted);">Mã đơn hàng: <strong>{{ booking.booking_code }}</strong></p>
+        </div>
+
+        <!-- Summary -->
+        <div style="background: var(--bg-color); padding: 20px; border-radius: var(--radius-md); margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>Phòng nghỉ:</span>
+                <strong>{{ booking.room.name }}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>Thời gian:</span>
+                <strong>{{ booking.check_in_date|date:"d/m/Y" }} → {{ booking.check_out_date|date:"d/m/Y" }}</strong>
+            </div>
+
+            {% if service_details %}
+            <div style="border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">DỊCH VỤ ĐẶT KÈM:</div>
+                {% for detail in service_details %}
+                <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px;">
+                    <span>{{ detail.service.name }} (x{{ detail.quantity }})</span>
+                    <span>{{ detail.subtotal|floatformat:0 }} VNĐ</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div style="border-top: 2px solid var(--primary); padding-top: 12px; margin-top: 12px; display: flex; justify-content: space-between; align-items: baseline;">
+                <span style="font-size: 18px; font-weight: 700; color: var(--primary);">TỔNG CỘNG:</span>
+                <span style="font-size: 24px; font-weight: 700; color: var(--primary-light);">{{ booking.total_amount|floatformat:0 }} VNĐ</span>
+            </div>
+        </div>
+
+        <!-- Payment Gateway Mockup -->
+        <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; text-align: center; margin-bottom: 24px;">
+            <h4 style="margin-bottom: 12px; color: var(--primary);"><i class="fa-solid fa-qrcode"></i> Cổng Thanh Toán Trực Tuyến VNPAY / QRPay</h4>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Mô phỏng quét mã QR thanh toán tức thì theo tài liệu SRS (Callback & Webhook)</p>
+            
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=FARMSTAY_PAYMENT_{{ booking.booking_code }}" alt="QR Payment" style="border: 1px solid var(--border); padding: 8px; border-radius: 8px; margin-bottom: 12px;">
+            <div style="font-size: 12px; color: var(--text-muted);">Quét bằng ứng dụng Ngân hàng / Ví điện tử để hoàn tất</div>
+        </div>
+
+        <form action="{% url 'payment_confirm' booking.id %}" method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; height: 48px; font-size: 16px;">
+                <i class="fa-solid fa-circle-check"></i> Giả Lập Thanh Toán Thành Công (Chuyển Trạng Thái PAID)
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

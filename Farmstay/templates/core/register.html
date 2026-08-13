@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Đăng Ký - Mộc Nhiên Farmstay{% endblock %}
+
+{% block content %}
+<div style="max-width: 480px; margin: 40px auto;">
+    <div class="card" style="padding: 32px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div class="logo" style="justify-content: center; margin-bottom: 8px;">
+                <i class="fa-solid fa-tree"></i>
+                <span>Mộc Nhiên Farmstay</span>
+            </div>
+            <h2 style="font-size: 22px; color: var(--primary);">Đăng Ký Tài Khoản Mới</h2>
+        </div>
+
+        <form action="{% url 'register' %}" method="POST">
+            {% csrf_token %}
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Tên đăng nhập *</label>
+                <input type="text" name="username" required class="form-control" style="width: 100%;" placeholder="Ví dụ: ngyen_van_a">
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Email nhận xác nhận đơn *</label>
+                <input type="email" name="email" required class="form-control" style="width: 100%;" placeholder="email@domain.com">
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Số điện thoại</label>
+                <input type="text" name="phone" class="form-control" style="width: 100%;" placeholder="0901234567">
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Mật khẩu *</label>
+                <input type="password" name="password" required class="form-control" style="width: 100%;" placeholder="••••••••">
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Xác nhận mật khẩu *</label>
+                <input type="password" name="confirm_password" required class="form-control" style="width: 100%;" placeholder="••••••••">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; height: 44px; font-size: 15px;">
+                Tạo Tài Khoản
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 20px; font-size: 14px; color: var(--text-muted);">
+            Đã có tài khoản? <a href="{% url 'login' %}" style="color: var(--primary); font-weight: 700;">Đăng nhập ngay</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

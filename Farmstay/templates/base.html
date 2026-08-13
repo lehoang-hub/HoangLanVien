@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mộc Nhiên Farmstay - Trải Nghiệm Thiên Nhiên{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #1b4332;
+            --primary-light: #2d6a4f;
+            --accent: #52b788;
+            --accent-bg: #d8f3dc;
+            --bg-color: #f4f9f5;
+            --surface: #ffffff;
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --shadow-md: 0 8px 24px rgba(27,67,50,0.08);
+            --transition: all 0.25s ease-in-out;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .logo i {
+            color: var(--accent);
+            font-size: 26px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            list-style: none;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            color: var(--text-dark);
+            transition: var(--transition);
+        }
+
+        .nav-link:hover {
+            color: var(--accent);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1.5px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--accent-bg);
+        }
+
+        .btn-accent {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background-color: var(--primary-light);
+        }
+
+        /* Container */
+        .main-content {
+            flex: 1;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* Alert Messages */
+        .messages-container {
+            max-width: 1200px;
+            margin: 16px auto 0;
+            padding: 0 24px;
+        }
+
+        .alert {
+            padding: 14px 20px;
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background-color: #d1e7dd;
+            color: #0f5132;
+            border: 1px solid #badbcc;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #842029;
+            border: 1px solid #f5c2c7;
+        }
+
+        .alert-info {
+            background-color: #cff4fc;
+            color: #055160;
+            border: 1px solid #b6effb;
+        }
+
+        /* Footer */
+        .footer {
+            background-color: var(--primary);
+            color: white;
+            padding: 48px 24px 24px;
+            margin-top: 60px;
+        }
+
+        .footer-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 32px;
+            margin-bottom: 32px;
+        }
+
+        .footer-brand p {
+            color: #a3b18a;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        .footer-col h4 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #dad7cd;
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-col ul li a {
+            color: #a3b18a;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        .footer-col ul li a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            font-size: 14px;
+            color: #a3b18a;
+        }
+
+        /* Utility Card & Badges */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success { background: #d8f3dc; color: #1b4332; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{% url 'index' %}" class="logo">
+                <i class="fa-solid fa-tree"></i>
+                <span>Mộc Nhiên Farmstay</span>
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="{% url 'index' %}" class="nav-link">Trang chủ</a></li>
+                <li><a href="{% url 'room_list' %}" class="nav-link">Tìm Phòng</a></li>
+                <li><a href="{% url 'menu_list' %}" class="nav-link"><i class="fa-solid fa-utensils"></i> Thực Đơn</a></li>
+                <li><a href="{% url 'motorbike_list' %}" class="nav-link"><i class="fa-solid fa-motorcycle"></i> Thuê Xe Máy</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'booking_history' %}" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử Đặt Phòng</a></li>
+                    {% if user.is_staff or user.role == 'ADMIN' %}
+                        <li><a href="{% url 'admin_dashboard' %}" class="nav-link" style="color: #d97706; font-weight: 700;"><i class="fa-solid fa-chart-line"></i> Dashboard Quản Trị</a></li>
+                    {% endif %}
+
+                {% endif %}
+            </ul>
+
+
+            <div class="nav-actions">
+                {% if user.is_authenticated %}
+                    <span style="font-size: 14px; font-weight: 600; color: var(--primary);">
+                        <i class="fa-regular fa-user"></i> {{ user.username }}
+                    </span>
+                    <a href="{% url 'logout' %}" class="btn btn-outline" style="padding: 6px 14px; font-size: 13px;">Đăng xuất</a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-outline">Đăng Nhập</a>
+                    <a href="{% url 'register' %}" class="btn btn-primary">Đăng Ký</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            <span>{{ message }}</span>
+            <i class="fa-solid fa-xmark" onclick="this.parentElement.remove()" style="cursor: pointer;"></i>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="logo" style="color: white;">
+                    <i class="fa-solid fa-tree" style="color: var(--accent);"></i>
+                    <span>Mộc Nhiên Farmstay</span>
+                </div>
+                <p>Nơi gác lại những âu lo thường nhật, hòa mình cùng không gian thiên nhiên thanh bình và tận hưởng hương vị nông trại thuần khiết.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Khám Phá</h4>
+                <ul>
+                    <li><a href="{% url 'room_list' %}">Danh sách phòng</a></li>
+                    <li><a href="{% url 'index' %}">Dịch vụ ăn uống</a></li>
+                    <li><a href="{% url 'index' %}">Thuê xe máy khám phá</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Liên Hệ</h4>
+                <ul>
+                    <li><i class="fa-solid fa-location-dot"></i> Thôn Nông Trường, Xã Lâm Hà, Lâm Đồng</li>
+                    <li><i class="fa-solid fa-phone"></i> Hotline: 0901 234 567</li>
+                    <li><i class="fa-solid fa-envelope"></i> Email: booking@mocnhienfarmstay.com</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 Mộc Nhiên Farmstay. Tất cả quyền được bảo lưu. Phát triển bởi hệ thống Django & MySQL.
+        </div>
+    </footer>
+
+</body>
+</html>

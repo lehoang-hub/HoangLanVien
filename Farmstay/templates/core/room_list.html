@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Tra Cứu Phòng Trống - Mộc Nhiên Farmstay{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: white;
+        padding: 24px;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 32px;
+        border: 1px solid var(--border);
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) 140px;
+        gap: 16px;
+        align-items: end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .form-group label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .form-control {
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+    }
+
+    .form-control:focus {
+        border-color: var(--accent);
+    }
+
+    .room-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 28px;
+    }
+
+    .room-img {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+    }
+
+    .room-body {
+        padding: 20px;
+    }
+
+    .price-tag {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <h2 style="margin-bottom: 8px; color: var(--primary); font-size: 26px;">Tra Cứu & Đặt Phòng</h2>
+    <p style="color: var(--text-muted); margin-bottom: 24px;">Chọn thời gian chuyến đi để xem chính xác danh sách phòng còn trống</p>
+
+    <!-- Filter Form -->
+    <div class="filter-card">
+        <form method="GET" action="{% url 'room_list' %}" class="filter-form">
+            <div class="form-group">
+                <label><i class="fa-regular fa-calendar-check"></i> Ngày Nhận Phòng</label>
+                <input type="date" name="check_in" value="{{ check_in }}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label><i class="fa-regular fa-calendar-xmark"></i> Ngày Trả Phòng</label>
+                <input type="date" name="check_out" value="{{ check_out }}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label><i class="fa-solid fa-bed"></i> Loại Phòng</label>
+                <select name="room_type" class="form-control">
+                    <option value="">Tất cả loại phòng</option>
+                    {% for key, val in room_types %}
+                        <option value="{{ key }}" {% if room_type == key %}selected{% endif %}>{{ val }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label><i class="fa-solid fa-users"></i> Số Khách Mãn Định</label>
+                <input type="number" name="capacity" value="{{ capacity }}" min="1" placeholder="Ví dụ: 2" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary" style="height: 42px; justify-content: center;">
+                <i class="fa-solid fa-filter"></i> Lọc Phòng
+            </button>
+        </form>
+    </div>
+
+    <!-- Rooms List -->
+    <div class="room-grid">
+        {% for room in rooms %}
+        <div class="card">
+            <img src="{{ room.image_url|default:'https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=800&q=80' }}" alt="{{ room.name }}" class="room-img">
+            <div class="room-body">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span class="badge badge-success">{{ room.get_room_type_display }}</span>
+                    <span style="font-size: 13px; color: var(--text-muted);"><i class="fa-solid fa-user-group"></i> {{ room.capacity }} Người</span>
+                </div>
+                <h3 style="font-size: 20px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">{{ room.name }}</h3>
+                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">{{ room.description }}</p>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span class="price-tag">{{ room.price|floatformat:0 }} VNĐ</span>
+                        <span style="font-size: 12px; color: var(--text-muted);">/đêm</span>
+                    </div>
+                    <a href="{% url 'room_detail' room.id %}{% if check_in and check_out %}?check_in={{ check_in }}&check_out={{ check_out }}{% endif %}" class="btn btn-primary">
+                        Xem & Đặt <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div style="grid-column: 1/-1; text-align: center; padding: 48px; background: white; border-radius: var(--radius-lg);">
+            <i class="fa-solid fa-calendar-xmark" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+            <h3>Không tìm thấy phòng phù hợp</h3>
+            <p style="color: var(--text-muted); margin-top: 6px;">Vui lòng thử chọn khoảng thời gian khác hoặc điều kiện lọc ít hơn.</p>
+        </div>
+        {% endfor %}
+    </div>
+{% endblock %}

@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+
+{% block title %}Mộc Nhiên Farmstay - Nghỉ Dưỡng Nông Trại Xanh{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero Banner */
+    .hero {
+        background: linear-gradient(rgba(27, 67, 50, 0.65), rgba(27, 67, 50, 0.75)), url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+        border-radius: var(--radius-lg);
+        padding: 80px 40px;
+        color: white;
+        text-align: center;
+        margin-bottom: 40px;
+        box-shadow: var(--shadow-md);
+    }
+
+    .hero h1 {
+        font-size: 42px;
+        font-weight: 700;
+        margin-bottom: 16px;
+    }
+
+    .hero p {
+        font-size: 18px;
+        max-width: 650px;
+        margin: 0 auto 36px;
+        color: #e8f5e9;
+    }
+
+    /* Search Box */
+    .search-box {
+        background: white;
+        border-radius: var(--radius-md);
+        padding: 20px;
+        max-width: 900px;
+        margin: 0 auto;
+        box-shadow: var(--shadow-md);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) 120px;
+        gap: 16px;
+        align-items: end;
+    }
+
+    .search-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        text-align: left;
+    }
+
+    .search-group label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-dark);
+        text-transform: uppercase;
+    }
+
+    .search-group input, .search-group select {
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 14px;
+        outline: none;
+    }
+
+    .search-group input:focus, .search-group select:focus {
+        border-color: var(--accent);
+    }
+
+    /* Section Header */
+    .section-header {
+        text-align: center;
+        margin-bottom: 36px;
+    }
+
+    .section-header h2 {
+        font-size: 28px;
+        color: var(--primary);
+        font-weight: 700;
+    }
+
+    .section-header p {
+        color: var(--text-muted);
+        font-size: 15px;
+    }
+
+    /* Grid Layouts */
+    .room-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
+        margin-bottom: 60px;
+    }
+
+    .room-card-img {
+        height: 200px;
+        width: 100%;
+        object-fit: cover;
+    }
+
+    .room-card-body {
+        padding: 20px;
+    }
+
+    .room-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: var(--primary);
+    }
+
+    .room-meta {
+        display: flex;
+        gap: 16px;
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-bottom: 12px;
+    }
+
+    .room-price {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--primary-light);
+        margin-bottom: 16px;
+    }
+
+    .service-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 20px;
+        margin-bottom: 60px;
+    }
+
+    .service-card {
+        background: white;
+        border-radius: var(--radius-md);
+        padding: 20px;
+        text-align: center;
+        border: 1px solid var(--border);
+    }
+
+    .service-icon {
+        width: 50px;
+        height: 50px;
+        background: var(--accent-bg);
+        color: var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        margin: 0 auto 14px;
+    }
+
+    /* Reviews Section */
+    .reviews-container {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 36px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+    }
+
+    .review-item {
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+    }
+
+    .review-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .stars {
+        color: #f59e0b;
+        margin-bottom: 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- Hero Section -->
+    <div class="hero">
+        <h1>Về Với Thiên Nhiên Mộc Nhiên Farmstay</h1>
+        <p>Thưởng thức đặc sản sân vườn, dịch vụ chu đáo và trải nghiệm không gian nghỉ dưỡng yên bình giữa thung lũng xanh.</p>
+        
+        <form action="{% url 'room_list' %}" method="GET" class="search-box">
+            <div class="search-group">
+                <label><i class="fa-regular fa-calendar-check"></i> Ngày nhận phòng</label>
+                <input type="date" name="check_in" required>
+            </div>
+            <div class="search-group">
+                <label><i class="fa-regular fa-calendar-xmark"></i> Ngày trả phòng</label>
+                <input type="date" name="check_out" required>
+            </div>
+            <div class="search-group">
+                <label><i class="fa-solid fa-bed"></i> Loại phòng</label>
+                <select name="room_type">
+                    <option value="">Tất cả loại phòng</option>
+                    <option value="SINGLE">Phòng Đơn</option>
+                    <option value="DOUBLE">Phòng Đôi</option>
+                    <option value="FAMILY">Phòng Gia Đình</option>
+                    <option value="BUNGALOW">Bungalow Gỗ</option>
+                    <option value="VILLA">Villa Ven Hồ</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="height: 42px; justify-content: center;">
+                <i class="fa-solid fa-magnifying-glass"></i> Tìm
+            </button>
+        </form>
+    </div>
+
+    <!-- Featured Rooms -->
+    <div class="section-header">
+        <h2>Phòng Nghỉ Nổi Bật</h2>
+        <p>Không gian lưu trú tiện nghi, thiết kế mở hòa mình vào cảnh quan tự nhiên</p>
+    </div>
+
+    <div class="room-grid">
+        {% for room in featured_rooms %}
+        <div class="card">
+            <img src="{{ room.image_url|default:'https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=800&q=80' }}" alt="{{ room.name }}" class="room-card-img">
+            <div class="room-card-body">
+                <span class="badge badge-success" style="margin-bottom: 8px;">{{ room.get_room_type_display }}</span>
+                <h3 class="room-title">{{ room.name }}</h3>
+                <div class="room-meta">
+                    <span><i class="fa-solid fa-user-group"></i> {{ room.capacity }} Khách</span>
+                    <span><i class="fa-solid fa-check"></i> {{ room.get_status_display }}</span>
+                </div>
+                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 14px;">{{ room.description|truncatewords:15 }}</p>
+                <div class="room-price">{{ room.price|floatformat:0 }} VNĐ <span style="font-size: 12px; font-weight: 400; color: var(--text-muted);">/ đêm</span></div>
+                <a href="{% url 'room_detail' room.id %}" class="btn btn-primary" style="width: 100%; justify-content: center;">Xem Chi Tiết & Đặt Phòng</a>
+            </div>
+        </div>
+        {% empty %}
+        <p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">Chưa có thông tin phòng nghỉ.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Services Highlights -->
+    <div class="section-header">
+        <h2>Dịch Vụ Đi Kèm Tại Farmstay</h2>
+        <p>Đặt trước ẩm thực nông trại tươi ngon và xe máy tự do khám phá</p>
+    </div>
+
+    <div class="service-grid">
+        {% for service in services %}
+        <div class="service-card">
+            <div class="service-icon">
+                {% if service.service_type == 'FOOD' %}
+                    <i class="fa-solid fa-utensils"></i>
+                {% elif service.service_type == 'DRINK' %}
+                    <i class="fa-solid fa-mug-hot"></i>
+                {% else %}
+                    <i class="fa-solid fa-motorcycle"></i>
+                {% endif %}
+            </div>
+            <h4 style="margin-bottom: 6px; font-size: 16px;">{{ service.name }}</h4>
+            <p style="color: var(--accent); font-weight: 700; font-size: 15px;">{{ service.price|floatformat:0 }} VNĐ / {{ service.unit }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Verified Reviews -->
+    <div class="section-header">
+        <h2>Đánh Giá Từ Khách Hàng</h2>
+        <p>Cảm nhận chân thực từ những du khách đã từng lưu trú</p>
+    </div>
+
+    <div class="reviews-container">
+        {% for review in reviews %}
+        <div class="review-item">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <strong style="font-size: 15px; color: var(--primary);">{{ review.user.username }}</strong>
+                <span style="font-size: 12px; color: var(--text-muted);">Lưu trú tại {{ review.room.name }}</span>
+            </div>
+            <div class="stars">
+                {% for i in "12345"|make_list %}
+                    {% if forloop.counter <= review.rating %}
+                        <i class="fa-solid fa-star"></i>
+                    {% else %}
+                        <i class="fa-regular fa-star"></i>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <p style="font-size: 14px; color: var(--text-dark);">"{{ review.comment }}"</p>
+        </div>
+        {% empty %}
+        <p style="text-align: center; color: var(--text-muted);">Chưa có đánh giá nào.</p>
+        {% endfor %}
+    </div>
+{% endblock %}

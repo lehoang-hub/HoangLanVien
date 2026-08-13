@@ -1,32 +1,67 @@
 from django.shortcuts import render
-
-# Create your views here.
 from rest_framework import viewsets
-from .models import Bookings, Bungalows, Customers, Motorbikes
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+from .models import MenuItems
+from .serializers import MenuItemSerializer
+from .models import Bookings, Bungalows, Customers, Motorbikes,MotorbikeBookings
 from .serializers import (
     BookingSerializer,
     BungalowSerializer,
     CustomerSerializer,
-    MotorbikeSerializer
+    MotorbikeSerializer,
 )
+from .models import FoodOrders
+from .models import Galleries # (Hoặc tên model thực tế của bạn trong models.py)
+from rest_framework import serializers
+from .serializers import FoodOrderSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-import bcrypt
-from .models import Users
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
+from .serializers import MotorbikeBookingSerializer
+from rest_framework import serializers, viewsets
+from .models import Introduction
+from .serializers import IntroductionSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import CustomTokenObtainPairSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.contrib.auth.models import User
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+    permission_classes = [AllowAny]
+
+class IntroductionViewSet(viewsets.ModelViewSet):
+    queryset = Introduction.objects.all().order_by('-id')
+    serializer_class = IntroductionSerializer
+    permission_classes = [AllowAny]
+class GallerySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Galleries # Tên Model tương ứng trong database
+        fields = '__all__'
+
+# 2. Tạo ViewSet để cung cấp các API GET, POST, DELETE
+class GalleryViewSet(viewsets.ModelViewSet):
+    queryset = Galleries.objects.all().order_by('-id')
+    serializer_class = GallerySerializer
+class MotorbikeBookingViewSet(viewsets.ModelViewSet):
+    queryset = MotorbikeBookings.objects.all()
+    serializer_class = MotorbikeBookingSerializer
+    permission_classes = [AllowAny]
 
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Bookings.objects.all()
     serializer_class = BookingSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
 class BungalowViewSet(viewsets.ModelViewSet):
-        # Trỏ đến Database, lấy dữ liệu thật và sắp xếp phòng mới thêm lên đầu
-        queryset = Bungalows.objects.all().order_by('-id')
-        serializer_class = BungalowSerializer
+    queryset = Bungalows.objects.all().order_by('-id')
+    serializer_class = BungalowSerializer
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customers.objects.all()
@@ -40,6 +75,8 @@ class MotorbikeViewSet(viewsets.ModelViewSet):
 
 
 class CustomLoginView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
@@ -47,74 +84,75 @@ class CustomLoginView(APIView):
         if not email or not password:
             return Response({"detail": "Vui lòng cung cấp email và mật khẩu."}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            # 1. Tìm user trong bảng Laravel cũ
-            user = Users.objects.get(email=email)
+        user = None
+        # 1. Tự động nhận diện người dùng nhập vào là Email hay Username
+        if '@' in email:
+            try:
+                matched_user = User.objects.get(email=email)
+                user = authenticate(username=matched_user.username, password=password)
+            except User.DoesNotExist:
+                user = None
+        else:
+            user = authenticate(username=email, password=password)
 
-            # 2. Xử lý thuật toán mật khẩu: Laravel dùng $2y$, Python cần $2b$
-            laravel_hash = user.password.replace('$2y$', '$2b$').encode('utf-8')
+        # 2. Đối chiếu và cấp Token JWT chuẩn Django
+        if user is not None:
+            refresh = RefreshToken.for_user(user)
 
-            # 3. Đối chiếu mật khẩu
-            if bcrypt.checkpw(password.encode('utf-8'), laravel_hash):
+            # Ép kiểu role: Superuser là admin, còn lại là customer
+            user_role = 'admin' if user.is_superuser else 'customer'
 
-                # 4. Tạo chìa khóa JWT
-                refresh = RefreshToken.for_user(user)
-                return Response({
-                    'access': str(refresh.access_token),
-                    'refresh': str(refresh),
-                    'user': {
-                        'id': user.id,
-                        'name': user.name,
-                        'email': user.email,
-                        'role': user.role
-                    }
-                })
-            else:
-                return Response({"detail": "Mật khẩu không chính xác."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'user': {
+                    'id': user.id,
+                    'name': user.username,
+                    'email': user.email,
+                    'role': user_role
+                }
+            })
+        else:
+            return Response({"detail": "Tài khoản hoặc mật khẩu không chính xác."}, status=status.HTTP_401_UNAUTHORIZED)
 
-        except Users.DoesNotExist:
-            return Response({"detail": "Tài khoản không tồn tại."}, status=status.HTTP_401_UNAUTHORIZED)
 
-# Bạn có thể tự copy/paste và đổi tên tương tự cho các Model khác (như User, MenuItems...) nếu cần nhé.
 class CustomRegisterView(APIView):
     def post(self, request):
-        name = request.data.get('name')
         email = request.data.get('email')
         password = request.data.get('password')
-        role = request.data.get('role', 'customer')  # Mặc định vai trò là khách hàng nếu không truyền lên
+        name = request.data.get('name', '') # 🟢 Phải lấy đúng chữ 'name' từ React gửi lên
+        phone = request.data.get('phone', '') # 🟢 Lấy 'phone' từ React
 
-        # 1. Kiểm tra dữ liệu đầu vào
-        if not name or not email or not password:
-            return Response({"detail": "Vui lòng điền đầy đủ tên, email và mật khẩu."},
-                            status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(username=email).exists():
+            return Response({'detail': 'Email đã được sử dụng!'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Kiểm tra email đã tồn tại chưa
-        if Users.objects.filter(email=email).exists():
-            return Response({"detail": "Email này đã được sử dụng."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 3. Băm mật khẩu chuẩn Laravel (Bcrypt)
-        # Python mặc định sinh ra mã bắt đầu bằng $2b$
-        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-        # Đổi $2b$ thành $2y$ để Laravel hệ thống cũ đọc hiểu bình thường
-        laravel_hashed_pw = hashed_pw.replace('$2b$', '$2y$')
-
-        # 4. Lưu người dùng mới vào Database
-        new_user = Users.objects.create(
-            name=name,
+        # 🟢 Tạo User và lưu Tên thẳng vào cột first_name
+        user = User.objects.create_user(
+            username=email,
             email=email,
-            password=laravel_hashed_pw,
-            role=role,
-            created_at=timezone.now(),
-            updated_at=timezone.now()
+            password=password,
+            first_name=name
         )
 
-        return Response({
-            "detail": "Đăng ký tài khoản thành công!",
-            "user": {
-                "id": new_user.id,
-                "name": new_user.name,
-                "email": new_user.email,
-                "role": new_user.role
-            }
-        }, status=status.HTTP_201_CREATED)
+        # 🟢 Lưu Số điện thoại vào bảng Profile
+        if hasattr(user, 'profile'):
+            user.profile.phone = phone
+            user.profile.save()
+
+        return Response({'detail': 'Đăng ký thành công'}, status=status.HTTP_201_CREATED)
+
+class MenuItemViewSet(viewsets.ModelViewSet):
+    queryset = MenuItems.objects.all()
+    serializer_class = MenuItemSerializer
+    permission_classes = [AllowAny]
+
+    # Hàm này giúp Django hiểu và lọc ra danh sách khi React gọi ?type=food
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        item_type = self.request.query_params.get('type')
+        if item_type:
+            queryset = queryset.filter(type=item_type)
+        return queryset
+class FoodOrderViewSet(viewsets.ModelViewSet):
+    queryset = FoodOrders.objects.all().order_by('-created_at')
+    serializer_class = FoodOrderSerializer

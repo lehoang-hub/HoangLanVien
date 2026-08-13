@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -142,7 +143,24 @@ REST_FRAMEWORK = {
 # Cấu hình CORS
 CORS_ALLOW_ALL_ORIGINS = True
 import os
-
 MEDIA_URL = '/media/'
 # Đường dẫn vật lý lưu ảnh trên máy tính
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Báo cho Django biết từ nay hãy dùng Model User do bạn tự định nghĩa
+# AUTH_USER_MODEL = 'api.Users'
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  # Token chính sống 60 phút
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),  # Token làm mới sống 1 ngày
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': False,
+
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    "TOKEN_OBTAIN_SERIALIZER": "api.serializers.CustomTokenObtainPairSerializer",
+}

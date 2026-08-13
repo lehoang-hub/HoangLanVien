@@ -7,13 +7,36 @@ export default function BungalowDetail() {
   const [bungalow, setBungalow] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // 👉 Lịch thời gian thực
+  const [dynamicDailyMap, setDynamicDailyMap] = useState({});
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedDates, setSelectedDates] = useState([]);
-  
-  const [customerForm, setCustomerForm] = useState({
-    fullname: '',
-    phone: '',
-    email: ''
+
+  // 🟢 CẬP NHẬT: Tự động điền thông tin khách hàng từ localStorage nếu đã đăng nhập
+  const [customerForm, setCustomerForm] = useState(() => {
+    const storedUser = localStorage.getItem('userData');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+
+        // Cố gắng lấy tên từ mọi trường có thể
+        let extractedName = user.name || user.full_name || user.fullname || user.first_name || user.username || '';
+
+        // NẾU TÊN CÓ CHỨA DẤU @ (TỨC LÀ EMAIL) -> ÉP THÀNH RỖNG ĐỂ KHÁCH TỰ GÕ
+        if (extractedName.includes('@')) {
+          extractedName = '';
+        }
+
+        return {
+          fullname: extractedName,
+          phone: user.phone || user.phone_number || '',
+          email: user.email || ''
+        };
+      } catch (e) {
+        console.error("Lỗi đọc dữ liệu người dùng:", e);
+      }
+    }
+    return { fullname: '', phone: '', email: '' };
   });
 
   const [bookingResult, setBookingResult] = useState(null);
@@ -21,36 +44,75 @@ export default function BungalowDetail() {
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/bungalows/${id}/`)
-  .then(res => res.json())
+      .then(res => res.json())
       .then(data => {
-        setBungalow(data);
+        const actualData = data.data || data.result || data;
+        setBungalow(actualData);
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
         setLoading(false);
       });
+
+    const fetchBookingsForCalendar = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/bookings/`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const allBookings = Array.isArray(data) ? data : (data.results || data.data || []);
+
+        const activeBookings = allBookings.filter(
+          b => (String(b.bungalow) === String(id) || String(b.bungalow_id) === String(id)) && b.status !== 'cancelled'
+        );
+
+        const newMap = {};
+        activeBookings.forEach(b => {
+           let dayStatus = 'booked';
+           if (b.status === 'checked_in') dayStatus = 'occupied';
+           if (b.status === 'maintenance') dayStatus = 'maintenance';
+
+           if (b.check_in_date && b.check_out_date) {
+             let curr = new Date(b.check_in_date);
+             const end = new Date(b.check_out_date);
+             while (curr <= end) {
+               const year = curr.getFullYear();
+               const month = String(curr.getMonth() + 1).padStart(2, '0');
+               const day = String(curr.getDate()).padStart(2, '0');
+
+               const dStr = `${year}-${month}-${day}`;
+               if (newMap[dStr] !== 'occupied') newMap[dStr] = dayStatus;
+               curr.setDate(curr.getDate() + 1);
+             }
+           }
+        });
+        setDynamicDailyMap(newMap);
+      } catch (e) {
+        console.error("Lỗi đồng bộ lịch:", e);
+      }
+    };
+    fetchBookingsForCalendar();
   }, [id]);
 
   if (loading) return <div className="p-10 text-center">Đang tải chi tiết phòng...</div>;
   if (!bungalow) return <div className="p-10 text-center text-red-500">Không tìm thấy phòng!</div>;
 
   let parsedImages = [];
-  if (bungalow.images) {
-    if (typeof bungalow.images === 'string') {
-      try {
-        parsedImages = JSON.parse(bungalow.images);
-      } catch (error) {
-        parsedImages = [];
-      }
-    } else if (Array.isArray(bungalow.images)) {
-      parsedImages = bungalow.images; 
+  const rawImages = bungalow.images || bungalow.gallery || bungalow.galleries;
+  if (rawImages) {
+    if (typeof rawImages === 'string') {
+      try { parsedImages = JSON.parse(rawImages); } catch (e) { parsedImages = []; }
+    } else if (Array.isArray(rawImages)) {
+      parsedImages = rawImages;
     }
   }
 
-  const imageList = parsedImages.length > 0 
-    ? parsedImages.map(img => img.url || img) 
-    : (bungalow.image ? [bungalow.image] : []);
+  const mainImage = bungalow.image || bungalow.image_url || bungalow.thumbnail || bungalow.photo || bungalow.picture;
+
+  const imageList = parsedImages.length > 0
+    ? parsedImages.map(img => img.url || img.image || img)
+    : (mainImage ? [mainImage] : []);
 
   const handlePrevImage = () => {
     setCurrentImageIndex((prevIndex) => (prevIndex === 0 ? imageList.length - 1 : prevIndex - 1));
@@ -60,7 +122,9 @@ export default function BungalowDetail() {
     setCurrentImageIndex((prevIndex) => (prevIndex === imageList.length - 1 ? 0 : prevIndex + 1));
   };
 
-  const dailyMap = bungalow.daily_status ? JSON.parse(bungalow.daily_status) : {};
+  const baseMap = bungalow.daily_status ? JSON.parse(bungalow.daily_status) : {};
+  const dailyMap = Object.keys(dynamicDailyMap).length > 0 ? dynamicDailyMap : baseMap;
+
   const startDateStr = bungalow.available_from ? bungalow.available_from.split('T')[0] : null;
   const endDateStr = bungalow.available_to ? bungalow.available_to.split('T')[0] : null;
 
@@ -74,7 +138,7 @@ export default function BungalowDetail() {
       setSelectedDates([dateStr]);
     } else if (selectedDates.length === 1) {
       const firstDate = selectedDates[0];
-      
+
       if (dateStr < firstDate) {
         setSelectedDates([dateStr]);
         return;
@@ -82,11 +146,11 @@ export default function BungalowDetail() {
 
       let curr = new Date(firstDate);
       const end = new Date(dateStr);
-      
+
       while (curr <= end) {
         const dStr = curr.toISOString().split('T')[0];
         const s = dailyMap[dStr] || 'available';
-        
+
         if (s !== 'available' && s !== 'Trống') {
           alert(`Khoảng thời gian bạn chọn chứa ngày ${dStr} không trống! Vui lòng chọn lại.`);
           setSelectedDates([dateStr]);
@@ -101,11 +165,11 @@ export default function BungalowDetail() {
 
   const calculateBookingDetails = () => {
     if (selectedDates.length === 0) return { totalDays: 0, totalPrice: 0 };
-    
+
     if (selectedDates.length === 1) {
       return { totalDays: 1, totalPrice: Number(bungalow.base_price) };
     }
-    
+
     const start = new Date(selectedDates[0]);
     const end = new Date(selectedDates[1]);
     const diffTime = Math.abs(end - start);
@@ -119,15 +183,13 @@ export default function BungalowDetail() {
   const handleBookingSubmit = (e) => {
     e.preventDefault();
 
-    // 👉 BƯỚC 1: CHẶN NGƯỜI DÙNG CHƯA ĐĂNG NHẬP
     const token = localStorage.getItem('userToken');
     if (!token) {
       alert("Vui lòng đăng nhập tài khoản để tiếp tục đặt phòng!");
       navigate('/auth', { state: { isLogin: true } });
-      return; // Dừng việc chạy code bên dưới nếu chưa đăng nhập
+      return;
     }
-    
-    // BƯỚC 2: Kiểm tra lịch trống
+
     if (selectedDates.length === 0) {
       alert("Vui lòng click chọn ngày trên lịch!");
       return;
@@ -135,26 +197,52 @@ export default function BungalowDetail() {
 
     const checkIn = selectedDates[0];
     const checkOut = selectedDates.length === 2 ? selectedDates[1] : selectedDates[0];
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const hh = String(now.getHours()).padStart(2, '0');
 
+    const random2Digits = Math.floor(Math.random() * 90) + 10;
+
+    const cleanBungalowName = (bungalow?.name || 'BUNGALOW')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toUpperCase();
+
+    const customBookingCode = `${cleanBungalowName}${dd}${mm}${yyyy}${hh}${random2Digits}`;
     const bookingData = {
-      full_name: customerForm.fullname,
-      phone: customerForm.phone,
-      email: customerForm.email,
+      booking_code: customBookingCode,
+      total_amount: totalPrice,
+      status: 'pending',
+      //customer: JSON.parse(localStorage.getItem('userData'))?.id || 1,
+      bungalow: bungalow.id,
+      bungalow_id: bungalow.id,
       check_in_date: checkIn,
       check_out_date: checkOut,
-      total_guests: Number(bungalow.capacity) || 1,
-      bungalow_id: bungalow.id,
+      // 🟢 Thông tin sẽ bám sát những gì hiển thị trên form
+      customer_name: customerForm.fullname,
+      customer_phone: customerForm.phone,
+      customer_email: customerForm.email,
+      total_guests: bungalow.capacity || 1,
       notes: "Khách đặt từ trang chi tiết Bungalow"
     };
 
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/client/bookings/`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-  body: JSON.stringify(bookingData)
-})
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/bookings/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}` // 🟢 BỔ SUNG: Gửi kèm Token để hệ thống nhận diện đúng người
+      },
+      body: JSON.stringify(bookingData)
+    })
+    .then(async (res) => {
+      const data = await res.json();
+
+      // Nếu server trả về mã OK và có ID đơn hàng
+      if (res.ok && (data.id || data.booking_code)) {
         setBookingResult({
           bookingCode: data.booking_code,
           bungalowName: bungalow.name,
@@ -162,7 +250,9 @@ export default function BungalowDetail() {
           customerName: customerForm.fullname
         });
       } else {
-        alert("Lỗi: " + (data.message || "Không thể đặt phòng"));
+        // 🟢 NÂNG CẤP: Bắt quả tang lỗi từ Django và in thẳng ra màn hình
+        console.error("Chi tiết lỗi từ Backend:", data);
+        alert("Django từ chối tạo đơn! Lỗi chi tiết: " + JSON.stringify(data));
       }
     })
     .catch(err => {
@@ -190,26 +280,26 @@ export default function BungalowDetail() {
         bgClass = 'bg-gray-100 text-gray-400 border-gray-200';
         statusText = 'Đã qua';
         isDisabled = true;
-      } 
+      }
       else if (startDateStr && endDateStr && (currentDate < startDateStr || currentDate > endDateStr)) {
         bgClass = 'bg-gray-100 text-gray-300 border-gray-200 line-through';
         statusText = 'Không mở';
         isDisabled = true;
-      } 
+      }
       else {
         const status = dailyMap[currentDate] || 'available';
-        if (status === 'booked') { 
-            bgClass = 'bg-gray-200 text-gray-700'; 
-            statusText = 'Đã đặt'; 
-            isDisabled = true; 
-        } else if (status === 'occupied') { 
-            bgClass = 'bg-green-100 text-green-800 border-green-500 shadow-sm'; 
-            statusText = 'Đang ở'; 
-            isDisabled = true; 
-        } else if (status === 'maintenance') { 
-            bgClass = 'bg-red-100 text-red-800 border-red-500'; 
-            statusText = 'Bảo trì'; 
-            isDisabled = true; 
+        if (status === 'booked') {
+            bgClass = 'bg-gray-200 text-gray-700';
+            statusText = 'Đã đặt';
+            isDisabled = true;
+        } else if (status === 'occupied') {
+            bgClass = 'bg-green-100 text-green-800 border-green-500 shadow-sm';
+            statusText = 'Đang ở';
+            isDisabled = true;
+        } else if (status === 'maintenance') {
+            bgClass = 'bg-red-100 text-red-800 border-red-500';
+            statusText = 'Bảo trì';
+            isDisabled = true;
         }
       }
 
@@ -219,8 +309,8 @@ export default function BungalowDetail() {
       }
 
       days.push(
-        <div 
-          key={currentDate} 
+        <div
+          key={currentDate}
           onClick={() => handleDateClick(currentDate, dailyMap[currentDate] || 'available', isDisabled)}
           className={`p-4 border rounded-xl text-center font-semibold transition cursor-pointer ${bgClass} ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
         >
@@ -232,19 +322,30 @@ export default function BungalowDetail() {
     return days;
   };
 
+  const getImageUrl = (imageSource) => {
+    if (!imageSource) return 'https://placehold.co/600x400?text=Chua+Co+Anh';
+    let imgPath = typeof imageSource === 'object' ? (imageSource.url || imageSource.image) : imageSource;
+    if (!imgPath) return 'https://placehold.co/600x400?text=Chua+Co+Anh';
+    if (imgPath.startsWith('http')) return imgPath;
+
+    const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '');
+    const safePath = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
+    return `${baseUrl}${safePath}`;
+  };
+
   if (bookingResult) {
-    const bankId = "VCB"; 
-    const accountNo = "1001000280804"; 
-    const accountName = "HOANG NGOC LE"; 
-    
+    const bankId = "VCB";
+    const accountNo = "1001000280804";
+    const accountName = "HOANG NGOC LE";
+
     const transferContent = `${bookingResult.bookingCode} - ${bookingResult.bungalowName}`;
-    
+
     const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${bookingResult.totalPrice}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(accountName)}`;
 
     return (
       <div className="max-w-4xl mx-auto p-8 bg-white rounded-xl shadow-lg mt-10 text-center">
         <h2 className="text-3xl font-bold text-green-600 mb-4">🎉 Đặt phòng thành công!</h2>
-        
+
         <div className="bg-gray-50 border rounded-xl p-6 mb-8 max-w-lg mx-auto text-left shadow-sm">
           <p className="text-gray-700 mb-2">Xin chào <strong>{bookingResult.customerName}</strong>,</p>
           <p className="text-gray-700 mb-2">Mã đặt phòng của bạn là: <strong className="text-blue-600 text-lg">{bookingResult.bookingCode}</strong></p>
@@ -258,7 +359,7 @@ export default function BungalowDetail() {
                 <p className="font-semibold text-yellow-800 text-lg">Quý khách xác nhận thông tin đặt phòng đã chính xác?</p>
                 <p className="text-sm text-yellow-700 mt-1">Vui lòng tiến hành thanh toán để hoàn tất quá trình giữ phòng.</p>
             </div>
-            
+
             <div className="flex gap-4">
               <button onClick={() => navigate(0)} className="px-6 py-3 rounded-xl border border-gray-300 hover:bg-gray-100 transition font-semibold text-gray-700">
                 Sửa thông tin
@@ -272,7 +373,7 @@ export default function BungalowDetail() {
           <div className="mt-8 p-8 border-2 border-blue-100 rounded-2xl bg-blue-50 flex flex-col items-center animate-fade-in">
             <h3 className="font-bold text-2xl mb-2 text-blue-900">Quét mã QR để thanh toán</h3>
             <p className="text-gray-600 mb-6">Sử dụng App ngân hàng bất kỳ để quét mã. Nội dung và số tiền đã được điền tự động.</p>
-            
+
             <div className="bg-white p-4 rounded-2xl shadow-md border inline-block mb-6">
               <img src={qrUrl} alt="Mã QR Thanh Toán" className="w-72 h-72 object-contain" />
             </div>
@@ -302,15 +403,16 @@ export default function BungalowDetail() {
         <div className="relative">
           {imageList.length > 0 ? (
             <div className="relative w-full h-80 rounded-xl overflow-hidden shadow-md border bg-black">
-              <img 
-                src={`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${imageList[currentImageIndex]}`}
-                alt={bungalow.name} 
-                className="w-full h-full object-cover transition-all duration-300" 
+              <img
+                src={getImageUrl(imageList[currentImageIndex])}
+                alt={bungalow.name}
+                className="w-full h-full object-cover transition-all duration-300"
+                onError={(e) => { e.target.src = 'https://placehold.co/600x400?text=Loi+Duong+Dan+Anh'; }}
               />
-              
+
               {imageList.length > 1 && (
-                <button 
-                  onClick={handlePrevImage} 
+                <button
+                  onClick={handlePrevImage}
                   className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full transition shadow"
                 >
                   &#10094;
@@ -318,8 +420,8 @@ export default function BungalowDetail() {
               )}
 
               {imageList.length > 1 && (
-                <button 
-                  onClick={handleNextImage} 
+                <button
+                  onClick={handleNextImage}
                   className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full transition shadow"
                 >
                   &#10095;
@@ -349,11 +451,11 @@ export default function BungalowDetail() {
           <form onSubmit={handleBookingSubmit} className="mt-6 bg-gray-50 p-4 rounded-xl border space-y-3">
             <h3 className="font-bold text-gray-800 text-sm uppercase">Thông tin đặt phòng</h3>
             <div className="text-xs text-blue-600 font-semibold">
-              {selectedDates.length > 0 
-                ? `Đã chọn: ${selectedDates.length === 1 ? selectedDates[0] : `Từ ${selectedDates[0]} đến ${selectedDates[1]}`} (${totalDays} ngày)` 
+              {selectedDates.length > 0
+                ? `Đã chọn: ${selectedDates.length === 1 ? selectedDates[0] : `Từ ${selectedDates[0]} đến ${selectedDates[1]}`} (${totalDays} ngày)`
                 : '👉 Vui lòng click chọn ngày trên lịch bên dưới'}
             </div>
-            
+
             <input type="text" placeholder="Họ và tên *" value={customerForm.fullname} onChange={e => setCustomerForm({...customerForm, fullname: e.target.value})} className="w-full border p-2 rounded text-sm" required />
             <input type="tel" placeholder="Số điện thoại *" value={customerForm.phone} onChange={e => setCustomerForm({...customerForm, phone: e.target.value})} className="w-full border p-2 rounded text-sm" required />
             <input type="email" placeholder="Email nhận thông tin xác nhận *" value={customerForm.email} onChange={e => setCustomerForm({...customerForm, email: e.target.value})} className="w-full border p-2 rounded text-sm" required />
@@ -372,7 +474,7 @@ export default function BungalowDetail() {
       </div>
 
       <div className="mt-12 border-t pt-8">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Chọn lịch trống tháng 08/2026 (Click chọn ngày)</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Chọn lịch trống (Click chọn ngày)</h2>
         <div className="grid grid-cols-7 gap-3">
           {renderCalendarDays()}
         </div>

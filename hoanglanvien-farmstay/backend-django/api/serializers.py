@@ -9,9 +9,11 @@ from .models import (
     MotorbikeBookings,
     MenuItems,
     Galleries,
-    Users
+    Users,
+    Introduction
 )
-
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .models import FoodOrders
 # 1. Quản lý Đặt phòng
 class BookingSerializer(serializers.ModelSerializer):
     class Meta:
@@ -69,4 +71,31 @@ class UserSerializer(serializers.ModelSerializer):
         # ⚠️ Lưu ý Bảo mật: Riêng bảng Users, chúng ta không dùng '__all__'
         # để tránh việc vô tình trả về cột 'password' ra ngoài API cho Frontend.
         fields = ['id', 'name', 'email', 'role', 'created_at']
+class FoodOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FoodOrders
+        fields = '__all__'
+class IntroductionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Introduction
+        fields = '__all__'
 
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        phone_number = ''
+        if hasattr(self.user, 'profile') and self.user.profile.phone:
+            phone_number = self.user.profile.phone
+
+        full_name = self.user.first_name if self.user.first_name else self.user.username
+
+        # 🟢 Gói ghém thêm name và phone vào vé thông hành (Token)
+        data['user'] = {
+            'id': self.user.id,
+            'email': self.user.email,
+            'name': full_name,
+            'phone': phone_number,
+        }
+        return data

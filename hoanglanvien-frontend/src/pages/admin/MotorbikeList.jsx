@@ -10,11 +10,10 @@ export default function MotorbikeList() {
 
   const [formData, setFormData] = useState({
     name: '',
-    license_plate: '', // Dùng biển số xe thay cho sức chứa
+    license_plate: '',
     base_price: '',
     description: '',
-    price: '',
-    status: 'Trống',
+    status: 'Trống', // Hiển thị tiếng Việt trên UI
     availableFrom: '',
     availableTo: '',
     images: [],
@@ -22,6 +21,7 @@ export default function MotorbikeList() {
   });
 
   const fetchMotorbikes = () => {
+    // Đã thêm dấu / ở cuối
     fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes/`)
       .then(res => res.json())
       .then(data => {
@@ -72,13 +72,12 @@ export default function MotorbikeList() {
     setEditId(bike.id);
     let vnStatus = 'Trống';
     if (bike.status === 'maintenance') vnStatus = 'Bảo trì';
-    if (bike.status === 'inactive') vnStatus = 'Đang sử dụng';
+    if (bike.status === 'occupied' || bike.status === 'inactive') vnStatus = 'Đang sử dụng';
 
-    // Xử lý bóc tách lịch trống an toàn
     let minDate = '';
     let maxDate = '';
     let statusObj = {};
-    
+
     try {
       statusObj = typeof bike.daily_status === 'string' ? JSON.parse(bike.daily_status) : (bike.daily_status || {});
       const dates = Object.keys(statusObj).sort();
@@ -94,8 +93,8 @@ export default function MotorbikeList() {
       base_price: bike.base_price || '',
       description: bike.description || '',
       status: vnStatus,
-      availableFrom: minDate, // Lấy trực tiếp từ lịch trống
-      availableTo: maxDate,   // Lấy trực tiếp từ lịch trống
+      availableFrom: minDate,
+      availableTo: maxDate,
       images: [],
       dailyStatus: statusObj
     });
@@ -107,11 +106,9 @@ export default function MotorbikeList() {
     setIsDetailModalOpen(true);
   };
 
-  // Hàm lưu dữ liệu (Xử lý nén ảnh Base64 chống lỗi 413 Content Too Large tuyệt đối)
   const handleSaveRoom = async (e) => {
     e.preventDefault();
 
-    // 1. HÀM TỰ ĐỘNG NÉN ẢNH (Giúp giảm ảnh 5MB xuống còn ~200KB, xóa bỏ hoàn toàn lỗi 413)
     const compressImage = (file) => {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -121,7 +118,6 @@ export default function MotorbikeList() {
           img.src = event.target.result;
           img.onload = () => {
             const canvas = document.createElement('canvas');
-            // Đặt kích thước tối đa để nén
             const MAX_WIDTH = 1200;
             const MAX_HEIGHT = 1200;
             let width = img.width;
@@ -144,7 +140,6 @@ export default function MotorbikeList() {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Nén thành JPEG với chất lượng 70%
             canvas.toBlob((blob) => {
               const newFile = new File([blob], file.name, {
                 type: 'image/jpeg',
@@ -157,13 +152,19 @@ export default function MotorbikeList() {
       });
     };
 
-    // 2. CHUẨN BỊ DỮ LIỆU
     const dataToSend = new FormData();
     dataToSend.append('name', formData.name);
     dataToSend.append('license_plate', formData.license_plate);
     dataToSend.append('description', formData.description);
-    dataToSend.append('base_price', formData.base_price);
-    dataToSend.append('status', formData.status);
+
+    // Ép kiểu số cho giá tiền để tránh lỗi DB
+    dataToSend.append('base_price', parseFloat(formData.base_price));
+
+    // SỬA LỖI: Dịch trạng thái Tiếng Việt sang Tiếng Anh cho Database
+    let apiStatus = 'available';
+    if (formData.status === 'Bảo trì') apiStatus = 'maintenance';
+    if (formData.status === 'Đang sử dụng') apiStatus = 'occupied';
+    dataToSend.append('status', apiStatus);
 
     if (formData.availableFrom) dataToSend.append('available_from', formData.availableFrom);
     if (formData.availableTo) dataToSend.append('available_to', formData.availableTo);
@@ -172,30 +173,34 @@ export default function MotorbikeList() {
       dataToSend.append('daily_status', JSON.stringify(formData.dailyStatus));
     }
 
-    // 3. THỰC HIỆN NÉN VÀ ĐÍNH KÈM TẤT CẢ FILE ẢNH
     if (formData.images && formData.images.length > 0) {
       for (let i = 0; i < formData.images.length; i++) {
-        // Nén từng ảnh trước khi append vào FormData
-        const compressedFile = await compressImage(formData.images[i]);
-        dataToSend.append('images[]', compressedFile);
+        const compressedFile = await compressImage(formData.images[0]);
+        dataToSend.append('image', compressedFile);
       }
     }
 
-    // 4. GỬI REQUEST
+    // SỬA LỖI: Cập nhật URL chuẩn RESTful (Có dấu / ở cuối, không có chữ update)
     let url = editId
-      ? `${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes/${editId}/update`
-      : `${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes`;
+      ? `${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes/${editId}/`
+      : `${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes/`;
+
+    // SỬA LỖI: Dùng PUT khi cập nhật, POST khi thêm mới
+    let requestMethod = editId ? 'PUT' : 'POST';
+    const token = localStorage.getItem('adminToken');
 
     fetch(url, {
-      method: 'POST',
+      method: requestMethod,
       headers: {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        // 2. THÊM DÒNG AUTHORIZATION NÀY VÀO ĐỂ VƯỢ QUA BẢO MẬT CỦA DJANGO
+        'Authorization': `Bearer ${token}`
       },
       body: dataToSend
     })
       .then(async res => {
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Lỗi máy chủ!");
+        if (!res.ok) throw new Error(data.message || JSON.stringify(data));
         return data;
       })
       .then(() => {
@@ -203,7 +208,10 @@ export default function MotorbikeList() {
         setIsModalOpen(false);
         fetchMotorbikes();
       })
-      .catch(err => alert("Lưu thất bại: " + err.message));
+      .catch(err => {
+        console.error(err);
+        alert("Lưu thất bại: Hãy kiểm tra Console để xem chi tiết lỗi từ Django");
+      });
   };
 
   const renderEditDailySchedule = () => {
@@ -246,17 +254,15 @@ export default function MotorbikeList() {
   const renderDetailCalendar = () => {
     if (!selectedMotorbike) return null;
 
-    // 1. Lấy dữ liệu lịch và tự động bóc tách ngày bắt đầu - kết thúc
     let dailyMap = {};
     let dates = [];
     try {
-      dailyMap = typeof selectedMotorbike.daily_status === 'string' 
-        ? JSON.parse(selectedMotorbike.daily_status) 
+      dailyMap = typeof selectedMotorbike.daily_status === 'string'
+        ? JSON.parse(selectedMotorbike.daily_status)
         : (selectedMotorbike.daily_status || {});
       dates = Object.keys(dailyMap).sort();
     } catch (e) {}
 
-    // Nếu mảng ngày trống, nghĩa là chưa có lịch
     if (dates.length === 0) {
       return <p className="text-gray-500 italic mt-4">Xe này chưa thiết lập lịch.</p>;
     }
@@ -292,7 +298,6 @@ export default function MotorbikeList() {
 
   return (
     <div>
-      {/* Tiêu đề trang và nút Thêm phòng mới */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Quản lý Xe máy</h1>
         <button
@@ -300,10 +305,9 @@ export default function MotorbikeList() {
             setEditId(null);
             setFormData({
               name: '',
-              license_plate: '', // Dùng biển số xe thay cho sức chứa
+              license_plate: '',
               base_price: '',
               description: '',
-              price: '',
               status: 'Trống',
               availableFrom: '',
               availableTo: '',
@@ -330,61 +334,82 @@ export default function MotorbikeList() {
           </thead>
           <tbody>
             {motorbikes.map((bike) => {
-              // 1. Tự động tìm Ảnh đầu tiên trong mảng images
-              let imageUrl = null;
-              try {
-                const imageList = typeof bike.images === 'string' ? JSON.parse(bike.images) : (bike.images || []);
-                if (imageList.length > 0) {
-                  imageUrl = `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${imageList[0].url || imageList[0]}`;
-                }
-              } catch (e) {}
 
-              // 2. Tự động tính ngày Bắt đầu và Kết thúc từ JSON daily_status
-              let minDate = null;
-              let maxDate = null;
-              try {
-                const statusObj = typeof bike.daily_status === 'string' ? JSON.parse(bike.daily_status) : (bike.daily_status || {});
-                const dates = Object.keys(statusObj).sort(); // Sắp xếp ngày từ nhỏ tới lớn
-                if (dates.length > 0) {
-                  minDate = dates[0];
-                  maxDate = dates[dates.length - 1];
+              // 1. BỘ QUÉT ẢNH THÔNG MINH (Xử lý mọi định dạng dữ liệu từ Django)
+              const getActualImage = (bikeData) => {
+                let source = bikeData.image || bikeData.images || bikeData.thumbnail;
+                if (!source) return null;
+
+                // Nếu là chuỗi JSON (ví dụ: '["/media/anh.jpg"]') thì dịch ngược lại
+                if (typeof source === 'string' && (source.startsWith('[') || source.startsWith('{'))) {
+                  try { source = JSON.parse(source); } catch (e) {}
                 }
-              } catch (e) {}
+
+                // Nếu là mảng nhiều ảnh, lấy ảnh đầu tiên
+                if (Array.isArray(source) && source.length > 0) source = source[0];
+                if (!source) return null;
+
+                // Bóc tách URL nếu nó nằm trong một Object
+                let imgPath = typeof source === 'object' ? (source.url || source.image || source.file || Object.values(source)[0]) : source;
+                if (!imgPath || typeof imgPath !== 'string') return null;
+
+                // Xóa bỏ các ký tự thừa rác (như dấu ngoặc vuông, ngoặc kép) nếu có
+                imgPath = imgPath.replace(/['"\[\]]/g, '');
+
+                if (imgPath.startsWith('http')) return imgPath;
+
+                const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '');
+                return `${baseUrl}${imgPath.startsWith('/') ? imgPath : `/${imgPath}`}`;
+              };
+
+              const actualImage = getActualImage(bike);
 
               return (
-                <tr key={bike.id} className="hover:bg-gray-50 border-b">
-                  {/* 1. HÌNH ẢNH */}
+                <tr key={bike.id} className="border-t hover:bg-gray-50">
                   <td className="px-6 py-4">
-                    {imageUrl ? (
-                      <img src={imageUrl} alt={bike.name} className="w-16 h-12 object-cover rounded border" />
+                    {/* 2. Cập nhật lại thẻ hiển thị ảnh */}
+                    {actualImage ? (
+                      <img
+                        src={actualImage}
+                        alt={bike.name}
+                        className="w-16 h-12 object-cover rounded-md border border-gray-200"
+                        onError={(e) => { e.target.src = 'https://placehold.co/100x100?text=Loi+Anh'; }}
+                      />
                     ) : (
-                      <span className="text-gray-400 italic text-sm">Chưa có ảnh</span>
+                      <span className="text-xs text-gray-400 italic">Chưa có ảnh</span>
                     )}
                   </td>
-
-                  {/* 2. TÊN XE & BIỂN SỐ */}
                   <td className="px-6 py-4">
                     <div className="font-bold text-gray-800 text-base">{bike.name}</div>
                     <div className="text-sm text-gray-500 mt-1">
                       Biển số: {bike.license_plate || 'Chưa cập nhật'}
                     </div>
                   </td>
-
-                  {/* 3. GIÁ / NGÀY */}
                   <td className="px-6 py-4 font-bold text-red-600">
                     {Number(bike.base_price).toLocaleString()} đ
                   </td>
-
-                  {/* 4. LỊCH TRỐNG */}
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    {minDate && maxDate ? (
-                      <span>{new Date(minDate).toLocaleDateString('vi-VN')} - {new Date(maxDate).toLocaleDateString('vi-VN')}</span>
-                    ) : (
-                      <span className="text-gray-400 italic">Chưa thiết lập</span>
-                    )}
-                  </td>
+                    {(() => {
+                      let minDate = '';
+                      let maxDate = '';
+                      try {
+                        const statusObj = typeof bike.daily_status === 'string'
+                          ? JSON.parse(bike.daily_status)
+                          : (bike.daily_status || {});
+                        const dates = Object.keys(statusObj).sort();
+                        if (dates.length > 0) {
+                          minDate = dates[0];
+                          maxDate = dates[dates.length - 1];
+                        }
+                      } catch (e) {}
 
-                  {/* 5. HÀNH ĐỘNG */}
+                      return minDate && maxDate ? (
+                        <span>{new Date(minDate).toLocaleDateString('vi-VN')} - {new Date(maxDate).toLocaleDateString('vi-VN')}</span>
+                      ) : (
+                        <span className="text-gray-400 italic">Chưa thiết lập</span>
+                      );
+                    })()}
+                  </td>
                   <td className="px-6 py-4 space-x-3">
                     <button onClick={() => handleOpenDetail(bike)} className="text-green-600 hover:underline font-medium">Chi tiết</button>
                     <button onClick={() => handleOpenEdit(bike)} className="text-blue-600 hover:underline font-medium">Sửa</button>
@@ -392,11 +417,10 @@ export default function MotorbikeList() {
                 </tr>
               );
             })}
-          </tbody>       
+          </tbody>
          </table>
       </div>
 
-      {/* MODAL THÊM MỚI / SỬA THÔNG TIN & CHỌN NHIỀU ẢNH */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
@@ -407,7 +431,6 @@ export default function MotorbikeList() {
                 <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full border rounded px-3 py-2" required />
               </div>
 
-              {/* Hàng 2: Biển số xe & Giá tiền */}
              <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Biển số xe (Tùy chọn)</label>
@@ -430,7 +453,6 @@ export default function MotorbikeList() {
                 </div>
               </div>
 
-              {/* Input chọn nhiều ảnh */}
               <div>
                 <label className="block text-sm font-medium mb-1">Hình ảnh Motorbike (Có thể chọn nhiều ảnh)</label>
                 <input
@@ -467,7 +489,6 @@ export default function MotorbikeList() {
         </div>
       )}
 
-      {/* MODAL XEM CHI TIẾT LỊCH TRỐNG THEO MÀU */}
       {isDetailModalOpen && selectedMotorbike && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
