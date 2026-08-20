@@ -216,7 +216,7 @@ export default function BungalowDetail() {
       booking_code: customBookingCode,
       total_amount: totalPrice,
       status: 'pending',
-      //customer: JSON.parse(localStorage.getItem('userData'))?.id || 1,
+      customer: JSON.parse(localStorage.getItem('userData'))?.id,
       bungalow: bungalow.id,
       bungalow_id: bungalow.id,
       check_in_date: checkIn,

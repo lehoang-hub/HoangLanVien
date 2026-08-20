@@ -27,6 +27,9 @@ import BungalowDetail from './pages/client/BungalowDetail';
 import Motorbikes from './pages/client/Motorbikes';
 import MotorbikeDetail from './pages/client/MotorbikeDetail';
 import AdminLogin from './pages/admin/AdminLogin';
+import UserManager from './pages/admin/UserManager';
+import UserProfile from './pages/client/UserProfile';
+import HeroManager from './pages/admin/HeroManager'; // Thay đổi đường dẫn import cho đúng với thư mục của bạn
 
 function App() {
   return (
@@ -44,6 +47,8 @@ function App() {
           <Route path="menu/food" element={<FoodList />} />
           <Route path="menu/drink" element={<DrinkList />} />
           <Route path="menu/orders" element={<MenuOrderList />} />
+          <Route path="users" element={<UserManager />} />
+          <Route path="/admin/slider" element={<HeroManager />} />
 
           {/* 🟢 SỬA LỖI ĐƯỜNG DẪN: Xóa dấu gạch chéo đầu để biến thành Route tương đối */}
           <Route path="introductions" element={<IntroductionManager />} />
@@ -67,6 +72,8 @@ function App() {
           <Route path="/motorbikes" element={<Motorbikes />} />
           <Route path="/motorbikes/:id" element={<MotorbikeDetail />} />
           <Route path="/auth" element={<UserAuth />} />
+          {/* 🟢 ROUTE TRANG TÀI KHOẢN KHÁCH HÀNG MỚI */}
+          <Route path="/profile" element={<UserProfile />} />
           <Route path="thuvien" element={<Thuvien />} />
         </Route>
 

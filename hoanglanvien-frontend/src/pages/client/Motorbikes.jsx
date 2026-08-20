@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import SEO from '../../components/SEO';
 
+// 🟢 IMPORT ẢNH TỪ THƯ MỤC TRONG MÁY (Local File)
+// Thay 'motorbike-bg.jpg' bằng đúng tên file ảnh bạn đã lưu trong thư mục assets
+import BANNER_IMAGE_URL from '../../assets/motobike.jpg';
+
 export default function Motorbikes() {
   // ==========================================
   // 1. STATE QUẢN LÝ DỮ LIỆU
@@ -46,11 +50,11 @@ export default function Motorbikes() {
   // ==========================================
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  
+
   // ĐÃ SỬA: Bỏ đi bộ lọc 'status' cũ của Bungalow, lấy toàn bộ danh sách xe
-  const availableMotorbikes = motorbikes; 
+  const availableMotorbikes = motorbikes;
   const currentMotorbikes = availableMotorbikes.slice(indexOfFirstItem, indexOfLastItem);
-  
+
   const totalPages = Math.ceil(availableMotorbikes.length / itemsPerPage);
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
@@ -61,22 +65,34 @@ export default function Motorbikes() {
 
   return (
     <div className="bg-gray-50 min-h-screen pb-16">
-      <SEO 
-        title="Danh sách Xe máy" 
+      <SEO
+        title="Danh sách Xe máy"
         description="Khám phá các loại xe máy tuyệt vời tại Hoàng Hân FarmStay với mức giá ưu đãi nhất."
         url="https://hoanghanfarmstay.com/motorbikes"
       />
 
-      {/* Banner Tiêu đề */}
-      <div className="bg-green-800 text-white py-16 text-center shadow-inner">
-        <h1 className="text-4xl font-bold mb-4 drop-shadow-md">Danh sách Xe máy</h1>
-        <p className="text-lg max-w-2xl mx-auto text-green-100 px-4">
-          Khám phá các loại xe máy tuyệt vời tại Hoàng Hân FarmStay. Lựa chọn phương tiện hoàn hảo cho những cung đường thơ mộng trong kỳ nghỉ của bạn.
-        </p>
+      {/* 🟢 BANNER NỀN: SỬ DỤNG ẢNH ĐƯỢC IMPORT VÀ CÓ LỚP PHỦ MỜ */}
+      <div className="relative bg-green-900 text-white py-24 text-center shadow-inner overflow-hidden">
+        {/* Lớp nền ảnh: dùng bg-cover giúp ảnh tự động co lại vừa với khung hình hiện tại */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+          style={{ backgroundImage: `url('${BANNER_IMAGE_URL}')` }}
+        ></div>
+
+        {/* Lớp phủ mờ màu đen để làm nổi bật chữ */}
+        <div className="absolute inset-0 bg-black/50 z-10"></div>
+
+        {/* Nội dung chữ */}
+        <div className="relative z-20">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">Danh sách Xe máy</h1>
+          <p className="text-lg md:text-xl max-w-2xl mx-auto text-green-100 px-4 drop-shadow-md">
+            Khám phá các loại xe máy tuyệt vời tại Hoàng Hân FarmStay. Lựa chọn phương tiện hoàn hảo cho những cung đường thơ mộng trong kỳ nghỉ của bạn.
+          </p>
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-        
+
         {/* ========================================== */}
         {/* LƯỚI DANH SÁCH XE MÁY                    */}
         {/* ========================================== */}
@@ -109,7 +125,7 @@ export default function Motorbikes() {
                 const actualImage = getActualImage(motorbike);
 
                 return (
-                    <div key={motorbike.id} className="..."> {/* Thẻ bọc ngoài giữ nguyên của bạn */}
+                    <div key={motorbike.id} className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col border border-gray-200"> {/* Thẻ bọc ngoài giữ nguyên của bạn */}
                         <div className="relative h-56 overflow-hidden bg-gray-200 flex items-center justify-center">
                             {actualImage ? (
                             <img

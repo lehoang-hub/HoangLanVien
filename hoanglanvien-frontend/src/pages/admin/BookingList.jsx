@@ -114,60 +114,10 @@ export default function BookingList() {
       body: JSON.stringify({ status: newStatus })
     })
     .then(res => res.json())
-    .then(async data => {
+    .then(data => {
       if (data.id) {
-        // --- MÔ PHỎNG LARAVEL EVENT BẮT ĐẦU TỪ ĐÂY ---
-        const bookingToUpdate = bookings.find(b => b.id === id);
-        if (bookingToUpdate) {
-          const bungalowId = bookingToUpdate.bungalow_id || bookingToUpdate.bungalow;
-          try {
-            // Lấy danh sách đang hiển thị, sửa tạm trạng thái của đơn hiện tại để tính toán
-            const activeBookings = bookings
-              .map(b => b.id === id ? { ...b, status: newStatus } : b)
-              .filter(b => (String(b.bungalow) === String(bungalowId) || String(b.bungalow_id) === String(bungalowId)) && b.status !== 'cancelled');
-
-            const newDailyMap = {};
-            activeBookings.forEach(b => {
-               let dayStatus = 'booked';
-               if (b.status === 'checked_in') dayStatus = 'occupied'; // Nhận diện đang ở
-               if (b.status === 'maintenance') dayStatus = 'maintenance';
-
-               if (b.check_in_date && b.check_out_date) {
-                 let curr = new Date(b.check_in_date);
-                 const end = new Date(b.check_out_date);
-                 while (curr <= end) {
-                   const year = curr.getFullYear();
-                   const month = String(curr.getMonth() + 1).padStart(2, '0');
-                   const day = String(curr.getDate()).padStart(2, '0');
-                   const dStr = `${year}-${month}-${day}`;
-
-                   // Ưu tiên trạng thái "Đang ở" ghi đè lên các trạng thái khác
-                   if (newDailyMap[dStr] !== 'occupied') newDailyMap[dStr] = dayStatus;
-                   curr.setDate(curr.getDate() + 1);
-                 }
-               }
-            });
-
-            // Patch update đè lịch mới vào DB của Bungalow
-            let updateUrl = `${import.meta.env.VITE_API_BASE_URL}/admin/bungalows/${bungalowId}/`;
-            let patchRes = await fetch(updateUrl, {
-              method: 'PATCH',
-              headers: headers,
-              body: JSON.stringify({ daily_status: JSON.stringify(newDailyMap) })
-            });
-            if (!patchRes.ok) {
-              await fetch(`${import.meta.env.VITE_API_BASE_URL}/bungalows/${bungalowId}/`, {
-                method: 'PATCH',
-                headers: headers,
-                body: JSON.stringify({ daily_status: JSON.stringify(newDailyMap) })
-              });
-            }
-          } catch(err) {
-            console.error("Lỗi đồng bộ lịch vào Bungalow:", err);
-          }
-        }
-        // --- KẾT THÚC MÔ PHỎNG EVENT ---
-
+        // Backend (Django Signals) đã tự động đồng bộ daily_status ngầm!
+        // Giờ chỉ việc thông báo và fetch lại data thôi.
         alert("Cập nhật trạng thái thành công!");
         fetchBookings();
       } else {
@@ -176,7 +126,6 @@ export default function BookingList() {
     })
     .catch(err => alert("Lỗi kết nối máy chủ!"));
   };
-
   const renderStatusBadge = (status) => {
     switch (status) {
       case 'pending': return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold">Chờ thanh toán</span>;

@@ -163,4 +163,13 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
     "TOKEN_OBTAIN_SERIALIZER": "api.serializers.CustomTokenObtainPairSerializer",
+
 }
+# settings.py
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+# Điền email và Mật khẩu ứng dụng (App Password) của bạn vào đây:
+EMAIL_HOST_USER = 'hoanglesport@gmail.com'
+EMAIL_HOST_PASSWORD = 'Leho@ngr15v3'

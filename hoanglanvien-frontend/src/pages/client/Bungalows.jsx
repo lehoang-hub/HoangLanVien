@@ -1,24 +1,26 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import SEO from '../../components/SEO';
 
+// 🟢 IMPORT ẢNH TỪ THƯ MỤC TRONG MÁY (Local File)
+// Chú ý: Thay 'bungalow.jpg' bằng đúng tên file ảnh bạn đã lưu trong thư mục assets
+import BANNER_IMAGE_URL from '../../assets/bungalow.jpg';
+
 export default function Bungalows() {
-  // ==========================================
-  // 1. STATE QUẢN LÝ DỮ LIỆU
-  // ==========================================
   const [bungalows, setBungalows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
-  const handleViewDetail = (id) => {
-    navigate(`/bungalows/${id}`); // Chuyển hướng sang trang chi tiết kèm ID
-  };
+
+  // 🟢 Lấy dữ liệu tìm kiếm từ thanh URL
+  const [searchParams] = useSearchParams();
+  const checkinParam = searchParams.get('checkin');
+  const checkoutParam = searchParams.get('checkout');
+  const guestsParam = searchParams.get('guests');
+
+  // Đặt số lượng hiển thị trên mỗi trang là 3
   const itemsPerPage = 3;
 
-  // ==========================================
-  // 2. GỌI API LẤY DỮ LIỆU TỪ LARAVEL
-  // ==========================================
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_BASE_URL}/bungalows/`)
       .then(res => {
@@ -26,11 +28,7 @@ export default function Bungalows() {
         return res.json();
       })
       .then(data => {
-        if (Array.isArray(data)) {
-          setBungalows(data);
-        } else {
-          setBungalows([]);
-        }
+        setBungalows(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(err => {
@@ -40,174 +38,174 @@ export default function Bungalows() {
       });
   }, []);
 
+  const handleViewDetail = (id) => {
+    navigate(`/bungalows/${id}`);
+  };
+
   // ==========================================
-  // 3. LOGIC PHÂN TRANG (PAGINATION)
+  // 🟢 LOGIC LỌC TÌM KIẾM (BỘ LỌC KÉP)
   // ==========================================
+  const availableRooms = bungalows.filter(room => {
+    // 1. Lọc điều kiện bắt buộc: Phòng phải đang mở
+    if (room.status !== 'available' && room.status !== 'Trống') return false;
+
+    // 2. Lọc theo sức chứa (Nếu khách hàng có chọn số khách)
+    if (guestsParam) {
+      const requiredCapacity = parseInt(guestsParam, 10);
+      const roomMax = parseInt(room.max_capacity || room.capacity || 0, 10);
+      if (roomMax < requiredCapacity) return false; // Loại nếu phòng quá nhỏ
+    }
+
+    // 3. Lọc theo thời gian (Bóc tách dữ liệu JSON daily_status)
+    if (checkinParam && checkoutParam && room.daily_status) {
+      try {
+        const dailyMap = JSON.parse(room.daily_status);
+        let curr = new Date(checkinParam);
+        const end = new Date(checkoutParam);
+
+        while (curr <= end) {
+          const year = curr.getFullYear();
+          const month = String(curr.getMonth() + 1).padStart(2, '0');
+          const day = String(curr.getDate()).padStart(2, '0');
+          const localDateStr = `${year}-${month}-${day}`;
+
+          const status = dailyMap[localDateStr] || 'available';
+          // Nếu có bất kỳ ngày nào bận -> Loại ngay phòng này khỏi kết quả
+          if (status === 'booked' || status === 'occupied' || status === 'maintenance') {
+            return false;
+          }
+          curr.setDate(curr.getDate() + 1);
+        }
+      } catch (e) {
+        console.error("Lỗi đọc lịch trống:", e);
+      }
+    }
+    return true; // Qua được hết bài test thì giữ lại phòng này
+  });
+
+  // Logic phân trang
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  
-  // Lấy ra danh sách phòng của trang hiện tại (chỉ lấy những phòng có trạng thái 'Trống')
-  // Lấy ra những phòng trống (Chấp nhận cả chữ 'available' trong DB lẫn 'Trống')
-  const availableRooms = bungalows.filter(room => room.status === 'available' || room.status === 'Trống');
   const currentBungalows = availableRooms.slice(indexOfFirstItem, indexOfLastItem);
-  
   const totalPages = Math.ceil(availableRooms.length / itemsPerPage);
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  // 🟢 Component Phân trang tái sử dụng (giống trang Restaurant)
+  const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="flex justify-center items-center gap-4 mt-12">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+        >
+          &larr; Trước
+        </button>
+        <span className="font-semibold text-gray-700">
+          Trang {currentPage} / {totalPages}
+        </span>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+        >
+          Sau &rarr;
+        </button>
+      </div>
+    );
+  };
 
-  // Màn hình chờ tải dữ liệu
   if (loading) {
     return <div className="text-center py-32 text-xl font-bold text-green-700">Đang tải danh sách phòng...</div>;
   }
 
   return (
     <div className="bg-gray-50 min-h-screen pb-16">
-      <SEO 
-        title="Danh sách Bungalow" 
-        description="Khám phá các hạng phòng tuyệt đẹp tại Hoàng Lan FarmStay với mức giá ưu đãi nhất."
-        url="https://hoanglanvien.com/bungalows"
-      />
+      <SEO title="Danh sách Bungalow" description="..." url="https://hoanglanvien.com/bungalows" />
 
-      {/* Banner Tiêu đề */}
-      <div className="bg-green-800 text-white py-16 text-center shadow-inner">
-        <h1 className="text-4xl font-bold mb-4 drop-shadow-md">Danh sách Bungalow</h1>
-        <p className="text-lg max-w-2xl mx-auto text-green-100 px-4">
-          Khám phá các hạng phòng tuyệt đẹp tại Hoàng Hân FarmStay. Lựa chọn không gian hoàn hảo cho kỳ nghỉ của bạn.
-        </p>
+      {/* 🟢 BANNER NỀN: SỬ DỤNG ẢNH ĐƯỢC IMPORT VÀ CÓ LỚP PHỦ MỜ */}
+      <div className="relative bg-green-900 text-white py-24 text-center shadow-inner overflow-hidden">
+        {/* Lớp nền ảnh: dùng bg-cover giúp ảnh tự động co lại vừa với khung hình hiện tại */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+          style={{ backgroundImage: `url('${BANNER_IMAGE_URL}')` }}
+        ></div>
+
+        {/* Lớp phủ mờ màu đen để làm nổi bật chữ */}
+        <div className="absolute inset-0 bg-black/50 z-10"></div>
+
+        {/* Nội dung chữ */}
+        <div className="relative z-20">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">
+            {checkinParam ? 'Kết quả Tìm kiếm Phòng' : 'Danh sách Bungalow'}
+          </h1>
+          <p className="text-lg md:text-xl max-w-2xl mx-auto text-green-100 px-4 drop-shadow-md">
+            {checkinParam
+              ? `Hiển thị các phòng trống từ ${checkinParam.split('-').reverse().join('/')} đến ${checkoutParam.split('-').reverse().join('/')} cho ${guestsParam} người.`
+              : 'Khám phá các hạng phòng tuyệt đẹp tại Hoàng Hân FarmStay.'}
+          </p>
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-        
-        {/* ========================================== */}
-        {/* LƯỚI DANH SÁCH BUNGALOW                    */}
-        {/* ========================================== */}
+
+        {/* LƯỚI DANH SÁCH BUNGALOW */}
         {availableRooms.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-xl shadow border border-gray-100">
-            <h3 className="text-2xl font-bold text-gray-500">Hiện tại chưa có phòng nào trống.</h3>
-            <p className="text-gray-400 mt-2">Vui lòng quay lại sau hoặc liên hệ Hotline để được hỗ trợ.</p>
+            <h3 className="text-2xl font-bold text-gray-500">Không tìm thấy phòng phù hợp.</h3>
+            <p className="text-gray-400 mt-2">Xin lỗi, không có phòng nào thoả mãn lịch trình của bạn. Vui lòng chọn ngày khác.</p>
+            {checkinParam && (
+              <button onClick={() => navigate('/bungalows')} className="mt-4 text-blue-600 font-bold underline">Xóa bộ lọc & Xem tất cả phòng</button>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {currentBungalows.map((room) => (
-              <div key={room.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col">
-                <div className="relative h-56 overflow-hidden bg-gray-200">
-                  {/* Dùng ảnh mặc định nếu API chưa có link ảnh */}
-                  {room.image ? (
-                    <img
-                      src={room.image.startsWith('http') ? room.image : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '')}${room.image.startsWith('/') ? room.image : `/${room.image}`}`}
-                      alt={room.name}
-                      className="w-full h-48 object-cover rounded-t-lg"
-                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1587061949409-02df41d5e562?q=80&w=600&auto=format&fit=crop'; }}
-                    />
-                ) : (
-                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400 italic">
-                        Chưa có ảnh
-                     </div>
-            )}
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-green-700 shadow">
-                    👥 {room.capacity || '2 Người lớn'}
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Vòng lặp hiển thị phòng giữ nguyên gốc của bạn */}
+              {currentBungalows.map((room) => (
+                <div key={room.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col">
+                  <div className="relative h-56 overflow-hidden bg-gray-200">
+                    {room.image ? (
+                      <img src={room.image.startsWith('http') ? room.image : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '')}${room.image.startsWith('/') ? room.image : `/${room.image}`}`} alt={room.name} className="w-full h-48 object-cover rounded-t-lg" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1587061949409-02df41d5e562?q=80&w=600&auto=format&fit=crop'; }} />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400 italic">Chưa có ảnh</div>
+                    )}
+                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-green-700 shadow">
+                      👥 Tối đa {room.max_capacity || room.capacity || 2} Khách
+                    </div>
+                  </div>
+
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">{room.name}</h3>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-1">
+                      {room.description || "Không gian thoáng mát, view đẹp, thích hợp nghỉ dưỡng trọn vẹn tại FarmStay."}
+                    </p>
+
+                    <div className="flex justify-between items-end mb-6 border-t border-gray-100 pt-4">
+                       <span className="text-sm font-medium text-gray-500">Giá chỉ từ</span>
+                       <span className="text-2xl font-bold text-red-600">
+                          {Number(room.base_price || room.price || 0).toLocaleString()} đ/đêm
+                       </span>
+                    </div>
+
+                    <div className="flex flex-col gap-3 mt-auto">
+                      <button onClick={() => handleViewDetail(room.id)} className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                        🔍 Xem chi tiết & Đặt phòng
+                      </button>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="p-6 flex-1 flex flex-col">
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">{room.name}</h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-1">
-                    {room.description || "Không gian thoáng mát, view đẹp, thích hợp nghỉ dưỡng trọn vẹn tại FarmStay."}
-                  </p>
-                  
-                  <div className="flex justify-between items-end mb-6 border-t border-gray-100 pt-4">
-                     <span className="text-sm font-medium text-gray-500">Giá chỉ từ</span>
-                        <span className="text-2xl font-bold text-red-600">
-                        {/* QUAN TRỌNG: Sửa room.price thành room.base_price */}
-                        {Number(room.base_price || room.price || 0).toLocaleString()} đ/đêm
-                            </span>
-                </div>
-
-                  <div className="flex flex-col gap-3 mt-auto">
-                    <button 
-              onClick={() => handleViewDetail(room.id)}
-              className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-            >
-              🔍 Xem chi tiết
-            </button>
-                    <button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg transition shadow-md">
-                      📅 Đặt phòng ngay
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ========================================== */}
-        {/* GIAO DIỆN NÚT PHÂN TRANG                   */}
-        {/* ========================================== */}
-        {totalPages > 1 && (
-          <div className="flex justify-center mt-12 gap-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-lg font-medium transition ${currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white border border-gray-300 text-gray-700 hover:bg-green-50 hover:text-green-700'}`}
-            >
-              Trước
-            </button>
-            
-            {[...Array(totalPages)].map((_, index) => (
-              <button
-                key={index}
-                onClick={() => paginate(index + 1)}
-                className={`w-10 h-10 rounded-lg font-bold transition ${currentPage === index + 1 ? 'bg-green-600 text-white shadow-md' : 'bg-white border border-gray-300 text-gray-700 hover:bg-green-50'}`}
-              >
-                {index + 1}
-              </button>
-            ))}
-
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded-lg font-medium transition ${currentPage === totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white border border-gray-300 text-gray-700 hover:bg-green-50 hover:text-green-700'}`}
-            >
-              Sau
-            </button>
-          </div>
-        )}
-
-        {/* ========================================== */}
-        {/* THÔNG TIN LIÊN HỆ & HỖ TRỢ                 */}
-        {/* ========================================== */}
-        <div className="mt-20 bg-white rounded-2xl shadow-xl p-8 md:p-12 border border-gray-200 flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex-1">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Bạn cần hỗ trợ đặt phòng?</h2>
-            <p className="text-gray-600 mb-6 text-lg">
-              Đội ngũ của Hoàng Hân FarmStay luôn sẵn sàng tư vấn chi tiết và hỗ trợ bạn chọn được căn Bungalow ưng ý nhất cho kỳ nghỉ sắp tới.
-            </p>
-            <div className="space-y-4">
-              <p className="flex items-center text-gray-800 font-medium text-lg">
-                <span className="w-10 text-2xl">📍</span> Thôn An Sơn, Xã Bà Nà, Huyện Hoà Vang, Thành Phố Đà Nẵng, Việt Nam
-              </p>
-              <p className="flex items-center text-gray-800 font-medium text-lg">
-                <span className="w-10 text-2xl">📞</span> Hotline/Zalo: 
-                <a href="tel:0943052657" className="text-blue-600 ml-2 hover:underline">0943 052 657</a>
-              </p>
-              <p className="flex items-center text-gray-800 font-medium text-lg">
-                <span className="w-10 text-2xl">✉️</span> Email: 
-                <a href="mailto:booking@hoanghanfarmstay.com" className="text-blue-600 ml-2 hover:underline">booking@hoanghanfarmstay.com</a>
-              </p>
+              ))}
             </div>
-          </div>
-          
-          <div className="w-full md:w-auto flex justify-center">
-             <div className="bg-green-50 p-8 rounded-xl border border-green-200 text-center w-full max-w-sm shadow-inner">
-                <h3 className="text-xl font-bold text-green-900 mb-2">Giờ làm việc</h3>
-                <p className="text-green-700 text-lg">Thứ 2 - Chủ Nhật</p>
-                <p className="text-green-800 font-bold text-2xl mb-6">07:00 - 22:00</p>
-                <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full w-full transition shadow-lg text-lg flex items-center justify-center gap-2">
-                  <span className="text-2xl">💬</span> Chat qua Zalo
-                </button>
-             </div>
-          </div>
-        </div>
+
+            {/* 🟢 HIỂN THỊ NÚT PHÂN TRANG */}
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </>
+        )}
 
       </div>
     </div>

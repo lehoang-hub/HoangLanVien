@@ -9,10 +9,24 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.exceptions import ObjectDoesNotExist
+import json
+from datetime import timedelta
+from django.db.models.signals import post_save, post_delete
+
+class Review(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    rating = models.IntegerField(default=5)
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.rating} Sao"
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone = models.CharField(max_length=20, null=True, blank=True)
-
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     def __str__(self):
         return self.user.username
 
@@ -22,9 +36,14 @@ def create_user_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.create(user=instance)
 
+# 🟢 ĐÃ SỬA CHỖ NÀY: Kiểm tra an toàn cho các tài khoản cũ
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
-    instance.profile.save()
+    # Dùng try-except để bắt lỗi. Nếu user cũ chưa có profile thì tự tạo cho họ.
+    try:
+        instance.profile.save()
+    except ObjectDoesNotExist:
+        UserProfile.objects.create(user=instance)
 class BookingDetails(models.Model):
     id = models.BigAutoField(primary_key=True)
     booking = models.ForeignKey('Bookings', models.CASCADE)
@@ -151,7 +170,6 @@ class Introduction(models.Model):
 class Galleries(models.Model):
     id = models.BigAutoField(primary_key=True)
     title = models.CharField(max_length=191, blank=True, null=True)
-    models.FileField(upload_to='galleries/', null=True, blank=True)
     video_url = models.CharField(max_length=191, blank=True, null=True)
     type = models.CharField(max_length=5)
     file_path = models.FileField(upload_to='galleries/', null=True, blank=True)
@@ -334,3 +352,80 @@ class FoodOrders(models.Model):
     class Meta:
         managed = True  # Cho phép Django tự tạo bảng
         db_table = 'food_orders'
+
+
+# 🟢 SIGNAL: ĐỒNG BỘ LỊCH TRỐNG BUNGALOW (DAILY_STATUS)
+# ==========================================================
+@receiver([post_save, post_delete], sender=Bookings)
+def sync_bungalow_daily_status(sender, instance, **kwargs):
+    bungalow_id = instance.bungalow_id
+    if not bungalow_id:
+        return
+
+    try:
+        bungalow = Bungalows.objects.get(id=bungalow_id)
+        # Lấy tất cả các đơn không bị hủy của phòng này
+        active_bookings = Bookings.objects.filter(bungalow_id=bungalow_id).exclude(status='cancelled')
+
+        new_daily_map = {}
+        for b in active_bookings:
+            if b.check_in_date and b.check_out_date:
+                day_status = 'booked'
+                if b.status == 'checked_in':
+                    day_status = 'occupied'
+                elif b.status == 'maintenance':
+                    day_status = 'maintenance'
+
+                curr_date = b.check_in_date
+                end_date = b.check_out_date
+
+                while curr_date <= end_date:
+                    d_str = curr_date.strftime('%Y-%m-%d')
+                    # Ưu tiên trạng thái occupied (Đang ở) không bị ghi đè bởi booked
+                    if new_daily_map.get(d_str) != 'occupied':
+                        new_daily_map[d_str] = day_status
+                    curr_date += timedelta(days=1)
+
+        # Lưu lại JSON vào bảng Bungalow
+        bungalow.daily_status = json.dumps(new_daily_map)
+        bungalow.save()
+    except Bungalows.DoesNotExist:
+        pass
+
+
+# ==========================================================
+# 🟢 SIGNAL: ĐỒNG BỘ LỊCH TRỐNG XE MÁY (DAILY_STATUS)
+# ==========================================================
+@receiver([post_save, post_delete], sender=MotorbikeBookings)
+def sync_motorbike_daily_status(sender, instance, **kwargs):
+    motorbike_id = instance.motorbike_id
+    if not motorbike_id:
+        return
+
+    try:
+        motorbike = Motorbikes.objects.get(id=motorbike_id)
+        # Lấy tất cả các đơn không bị hủy của xe này
+        active_bookings = MotorbikeBookings.objects.filter(motorbike_id=motorbike_id).exclude(status='cancelled')
+
+        new_daily_map = {}
+        for b in active_bookings:
+            if b.check_in_date and b.check_out_date:
+                day_status = 'booked'
+                if b.status in ['checked_in', 'paid']:  # Đã thanh toán cũng coi như chiếm xe
+                    day_status = 'occupied'
+                elif b.status == 'maintenance':
+                    day_status = 'maintenance'
+
+                curr_date = b.check_in_date
+                end_date = b.check_out_date
+
+                while curr_date <= end_date:
+                    d_str = curr_date.strftime('%Y-%m-%d')
+                    if new_daily_map.get(d_str) != 'occupied':
+                        new_daily_map[d_str] = day_status
+                    curr_date += timedelta(days=1)
+
+        motorbike.daily_status = json.dumps(new_daily_map)
+        motorbike.save()
+    except Motorbikes.DoesNotExist:
+        pass

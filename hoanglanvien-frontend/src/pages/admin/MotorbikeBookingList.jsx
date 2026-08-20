@@ -100,50 +100,9 @@ export default function MotorbikeBookingList() {
       }
       return res.json();
     })
-    .then(async data => {
+    .then(data => {
       if (data.id || data.success) {
-
-        const bookingToUpdate = bookings.find(b => b.id === id);
-        if (bookingToUpdate) {
-          const motorbikeId = bookingToUpdate.motorbike_id || bookingToUpdate.motorbike;
-          try {
-            // 👉 Lọc bỏ "cancelled" để tự động giải phóng ngày khi Hủy
-            const activeBookings = bookings
-              .map(b => b.id === id ? { ...b, status: newStatus } : b)
-              .filter(b => (String(b.motorbike) === String(motorbikeId) || String(b.motorbike_id) === String(motorbikeId)) && b.status !== 'cancelled');
-
-            const newDailyMap = {};
-            activeBookings.forEach(b => {
-               let dayStatus = 'booked';
-               // 👉 THÊM 'paid': Đã thanh toán CŨNG đồng bộ khóa lịch thành "Đang thuê"
-               if (b.status === 'checked_in' || b.status === 'paid') dayStatus = 'occupied';
-               if (b.status === 'maintenance') dayStatus = 'maintenance';
-
-               if (b.check_in_date && b.check_out_date) {
-                 let curr = new Date(b.check_in_date);
-                 const end = new Date(b.check_out_date);
-                 while (curr <= end) {
-                   const dStr = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}-${String(curr.getDate()).padStart(2, '0')}`;
-                   if (newDailyMap[dStr] !== 'occupied') newDailyMap[dStr] = dayStatus;
-                   curr.setDate(curr.getDate() + 1);
-                 }
-               }
-            });
-
-            let updateUrl = `${import.meta.env.VITE_API_BASE_URL}/admin/motorbikes/${motorbikeId}/`;
-            let patchRes = await fetch(updateUrl, {
-              method: 'PATCH', headers: headers, body: JSON.stringify({ daily_status: JSON.stringify(newDailyMap) })
-            });
-            if (!patchRes.ok) {
-              await fetch(`${import.meta.env.VITE_API_BASE_URL}/motorbikes/${motorbikeId}/`, {
-                method: 'PATCH', headers: headers, body: JSON.stringify({ daily_status: JSON.stringify(newDailyMap) })
-              });
-            }
-          } catch(err) {
-            console.error("Lỗi đồng bộ lịch vào Xe máy:", err);
-          }
-        }
-
+        // Mọi việc đã có Backend lo!
         alert("Cập nhật trạng thái thành công!");
         fetchMotorbikeBookings();
       } else {
@@ -152,7 +111,6 @@ export default function MotorbikeBookingList() {
     })
     .catch(err => alert("Lỗi kết nối máy chủ!"));
   };
-
   const renderStatusBadge = (status) => {
     switch (status) {
       case 'pending': return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold">Chờ thanh toán</span>;

@@ -5,11 +5,16 @@ import { Link, Outlet, useNavigate } from 'react-router-dom';
 export default function ClientLayout() {
     const navigate = useNavigate();
     const isUserLoggedIn = localStorage.getItem('userToken');
-
+    const storedUser = localStorage.getItem('userData');
+    const currentUser = storedUser ? JSON.parse(storedUser) : null;
+    const userName = currentUser ? (currentUser.name || currentUser.first_name || 'Hồ sơ của tôi') : 'Hồ sơ của tôi';
     const handleLogout = () => {
-        localStorage.removeItem('userToken');
-        navigate('/'); // F5 lại trang chủ
+       localStorage.removeItem('userToken');
+       localStorage.removeItem('refreshToken');
+       localStorage.removeItem('userData');
+       window.location.href = '/';
     };
+
     // Quản lý trạng thái đang ở tiếng Anh hay tiếng Việt
     const [isEnglish, setIsEnglish] = useState(false);
 
@@ -63,13 +68,15 @@ export default function ClientLayout() {
                             <div className="hidden md:flex items-center space-x-4">
 
                                 {isUserLoggedIn ? (
+
                                     // Nếu ĐÃ đăng nhập: Hiện nút Đăng xuất
-                                    <button
-                                        onClick={handleLogout}
-                                        className="text-gray-600 hover:text-red-600 font-bold transition"
-                                    >
-                                        Đăng xuất
-                                    </button>
+                                    <>
+                                        <Link to="/profile" className="font-bold text-green-700 hover:text-green-800 transition flex items-center gap-1">
+                                    👤 {userName} </Link>
+                                         <button onClick={handleLogout} className="font-medium text-gray-600 hover:text-red-600 transition ml-2">
+                                          Đăng xuất
+                                         </button>
+                                    </>
                                 ) : (
                                     // Nếu CHƯA đăng nhập: Hiện 2 nút Đăng nhập & Đăng ký
                                     <div className="flex space-x-3 border-r pr-4 border-gray-300">
